@@ -22,6 +22,10 @@ jobs:
       fail-fast: false
       ...
 
+    permissions:
+      # or set actions permissions in the repo settings to read/write
+      issues: write
+
     ...
 
     - uses: actions/setup-python@v4
