@@ -35,12 +35,12 @@ jobs:
 
     ...
 
-    - run: <
+    - run: |
         pip install --upgrade pytest-reportlog
 
     ...
 
-    - run: <
+    - run: |
         pytest --report-log pytest-log.jsonl
 
     ...
