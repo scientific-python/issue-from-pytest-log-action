@@ -14,6 +14,9 @@ How this works:
 
 To use the `issue-from-pytest-log` action in workflows, simply add a new step:
 
+> [!WARNING]
+> The action won't run properly unless either `issues: write` permissions are requested as shown above or the actions are granted read/write permissions in the repository settings.
+
 ```yaml
 jobs:
   my-job:
