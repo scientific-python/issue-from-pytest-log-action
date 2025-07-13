@@ -14,6 +14,9 @@ How this works:
 
 To use the `issue-from-pytest-log` action in workflows, simply add a new step:
 
+> [!WARNING]
+> The action won't run properly unless the `issues: write` permission is requested as shown below.
+
 ```yaml
 jobs:
   my-job:
@@ -21,6 +24,9 @@ jobs:
     strategy:
       fail-fast: false
       ...
+
+    permissions:
+      issues: write
 
     ...
 
@@ -31,12 +37,12 @@ jobs:
 
     ...
 
-    - run: <
+    - run: |
         pip install --upgrade pytest-reportlog
 
     ...
 
-    - run: <
+    - run: |
         pytest --report-log pytest-log.jsonl
 
     ...
