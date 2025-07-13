@@ -89,3 +89,18 @@ The label to set on the new issue.
     log-path: pytest-log.jsonl
     issue-label: "CI"
 ```
+
+### assignees
+
+optional
+
+Any assignees to set on the new issue:
+
+```yaml
+- uses: scientific-python/issue-from-pytest-log-action@main
+  with:
+    log-path: pytest-log.jsonl
+    assignees: ["user1", "user2"]
+```
+
+Note that assignees must have the commit bit on the repository.
