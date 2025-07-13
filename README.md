@@ -26,7 +26,7 @@ jobs:
 
     - uses: actions/setup-python@v4
       with:
-        python-version: "3.11"
+        python-version: "3.12"
         cache: pip
 
     ...
@@ -41,7 +41,7 @@ jobs:
 
     ...
 
-    - uses: xarray-contrib/issue-from-pytest-log@main
+    - uses: scientific-python/issue-from-pytest-log-action@main
       if: |
         failure()
         && ...
@@ -69,7 +69,7 @@ optional. Default: `⚠️ Nightly upstream-dev CI failed ⚠️`
 In case you don't like the default title for new issues, this setting can be used to set a different one:
 
 ```yaml
-- uses: xarray-contrib/issue-from-pytest-log@v1
+- uses: scientific-python/issue-from-pytest-log-action@main
   with:
     log-path: pytest-log.jsonl
     issue-title: "Nightly CI failed"
@@ -84,8 +84,23 @@ optional. Default: `CI`
 The label to set on the new issue.
 
 ```yaml
-- uses: xarray-contrib/issue-from-pytest-log@v1
+- uses: scientific-python/issue-from-pytest-log-action@main
   with:
     log-path: pytest-log.jsonl
     issue-label: "CI"
 ```
+
+### assignees
+
+optional
+
+Any assignees to set on the new issue:
+
+```yaml
+- uses: scientific-python/issue-from-pytest-log-action@main
+  with:
+    log-path: pytest-log.jsonl
+    assignees: ["user1", "user2"]
+```
+
+Note that assignees must have the commit bit on the repository.
