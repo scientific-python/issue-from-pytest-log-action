@@ -47,7 +47,7 @@ jobs:
 
     ...
 
-    - uses: scientific-python/issue-from-pytest-log-action@main
+    - uses: scientific-python/issue-from-pytest-log-action@f94477e45ef40e4403d7585ba639a9a3bcc53d43
       if: |
         failure()
         && ...
@@ -75,7 +75,7 @@ optional. Default: `⚠️ Nightly upstream-dev CI failed ⚠️`
 In case you don't like the default title for new issues, this setting can be used to set a different one:
 
 ```yaml
-- uses: scientific-python/issue-from-pytest-log-action@main
+- uses: scientific-python/issue-from-pytest-log-action@f94477e45ef40e4403d7585ba639a9a3bcc53d43
   with:
     log-path: pytest-log.jsonl
     issue-title: "Nightly CI failed"
@@ -90,7 +90,7 @@ optional. Default: `CI`
 The label to set on the new issue.
 
 ```yaml
-- uses: scientific-python/issue-from-pytest-log-action@main
+- uses: scientific-python/issue-from-pytest-log-action@f94477e45ef40e4403d7585ba639a9a3bcc53d43
   with:
     log-path: pytest-log.jsonl
     issue-label: "CI"
@@ -103,7 +103,7 @@ optional
 Any assignees to set on the new issue:
 
 ```yaml
-- uses: scientific-python/issue-from-pytest-log-action@main
+- uses: scientific-python/issue-from-pytest-log-action@f94477e45ef40e4403d7585ba639a9a3bcc53d43
   with:
     log-path: pytest-log.jsonl
     assignees: ["user1", "user2"]
