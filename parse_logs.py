@@ -14,6 +14,10 @@ from pytest import CollectReport, TestReport
 test_collection_stage = "test collection session"
 
 
+def strip_ansi(msg):
+    pass
+
+
 @dataclass
 class SessionStart:
     pytest_version: str
@@ -44,6 +48,9 @@ class PreformattedReport:
     name: str
     variant: str | None
     message: str
+
+    def __post_init__(self):
+        self.message = strip_ansi(self.message)
 
 
 @dataclass
