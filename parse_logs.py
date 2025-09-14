@@ -20,12 +20,11 @@ ansi_fe_escape_re = re.compile(
     rf"""
     \x1B # ESC
     (?:
-      {fe_bytes}  # single-byte Fe
-      |
       \[  # CSI
       {parameter_bytes}*
       {intermediate_bytes}*
-      {final_bytes}*
+      {final_bytes}
+      | {fe_bytes}  # single-byte Fe
     )
     """,
     re.VERBOSE,
