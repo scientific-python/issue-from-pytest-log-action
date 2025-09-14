@@ -83,3 +83,11 @@ def test_strip_ansi(escape):
     message = f"some {escape}text"
 
     assert parse_logs.strip_ansi(message) == "some text"
+
+
+@given(ansi_fe_escapes())
+def test_preformatted_report_ansi(escape):
+    actual = parse_logs.PreformattedReport(
+        filepath="a", name="b", variant=None, message=f"{escape}text"
+    )
+    assert actual.message == "text"
