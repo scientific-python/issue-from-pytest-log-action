@@ -19,6 +19,30 @@ variants = st.from_regex(re.compile(r"(\w+-)*\w+"), fullmatch=True)
 messages = st.text()
 
 
+def ansi_csi_escapes():
+    parameter_bytes = st.lists(st.characters(min_codepoint=0x30, max_codepoint=0x3F))
+    intermediate_bytes = st.lists(st.characters(min_codepoint=0x20, max_codepoint=0x2F))
+    final_bytes = st.characters(min_codepoint=0x40, max_codepoint=0x7E)
+
+    return st.builds(
+        lambda *args: "".join(["\x1b[", *args]),
+        parameter_bytes.map("".join),
+        intermediate_bytes.map("".join),
+        final_bytes,
+    )
+
+
+def ansi_c1_escapes():
+    byte_ = st.characters(
+        codec="ascii", min_codepoint=0x40, max_codepoint=0x5F, exclude_characters=["["]
+    )
+    return st.builds(lambda b: f"\x1b{b}", byte_)
+
+
+def ansi_fe_escapes():
+    return ansi_csi_escapes() | ansi_c1_escapes()
+
+
 def preformatted_reports():
     return st.tuples(filepaths, names, variants | st.none(), messages).map(
         lambda x: parse_logs.PreformattedReport(*x)
@@ -47,3 +71,23 @@ def test_truncate(reports, max_chars):
     formatted = parse_logs.truncate(reports, max_chars=max_chars, py_version=py_version)
 
     assert formatted is None or len(formatted) <= max_chars
+
+
+@given(st.lists(ansi_fe_escapes()).map("".join))
+def test_strip_ansi_multiple(escapes):
+    assert parse_logs.strip_ansi(escapes) == ""
+
+
+@given(ansi_fe_escapes())
+def test_strip_ansi(escape):
+    message = f"some {escape}text"
+
+    assert parse_logs.strip_ansi(message) == "some text"
+
+
+@given(ansi_fe_escapes())
+def test_preformatted_report_ansi(escape):
+    actual = parse_logs.PreformattedReport(
+        filepath="a", name="b", variant=None, message=f"{escape}text"
+    )
+    assert actual.message == "text"

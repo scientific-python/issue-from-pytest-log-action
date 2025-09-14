@@ -12,6 +12,28 @@ import more_itertools
 from pytest import CollectReport, TestReport
 
 test_collection_stage = "test collection session"
+fe_bytes = "[\x40-\x5f]"
+parameter_bytes = "[\x30-\x3f]"
+intermediate_bytes = "[\x20-\x2f]"
+final_bytes = "[\x40-\x7e]"
+ansi_fe_escape_re = re.compile(
+    rf"""
+    \x1B # ESC
+    (?:
+      \[  # CSI
+      {parameter_bytes}*
+      {intermediate_bytes}*
+      {final_bytes}
+      | {fe_bytes}  # single-byte Fe
+    )
+    """,
+    re.VERBOSE,
+)
+
+
+def strip_ansi(msg):
+    """strip all ansi escape sequences"""
+    return ansi_fe_escape_re.sub("", msg)
 
 
 @dataclass
@@ -44,6 +66,9 @@ class PreformattedReport:
     name: str
     variant: str | None
     message: str
+
+    def __post_init__(self):
+        self.message = strip_ansi(self.message)
 
 
 @dataclass
