@@ -12,10 +12,29 @@ import more_itertools
 from pytest import CollectReport, TestReport
 
 test_collection_stage = "test collection session"
+fe_bytes = "[\x40-\x5f]"
+parameter_bytes = "[\x30-\x3f]"
+intermediate_bytes = "[\x20-\x2f]"
+final_bytes = "[\x40-\x7e]"
+ansi_fe_escape_re = re.compile(
+    rf"""
+    \x1B # ESC
+    (?:
+      {fe_bytes}  # single-byte Fe
+      |
+      \[  # CSI
+      {parameter_bytes}*
+      {intermediate_bytes}*
+      {final_bytes}*
+    )
+    """,
+    re.VERBOSE,
+)
 
 
 def strip_ansi(msg):
-    pass
+    """strip all ansi escape sequences"""
+    return ansi_fe_escape_re.sub("", msg)
 
 
 @dataclass
