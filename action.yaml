@@ -76,31 +76,84 @@ runs:
         else
           echo "No packages specified for tracking, skipping package capture"
         fi
-    - name: handle package tracking
+    - name: store bisection data
       shell: bash -l {0}
       run: |
         if [ -n "${{ inputs.track-packages }}" ]; then
-          echo "Processing package tracking for: ${{ inputs.track-packages }}"
+          echo "Creating bisection data for: ${{ inputs.track-packages }}"
 
-          # Always store current run data (packages + test results)
-          python $GITHUB_ACTION_PATH/track_packages.py \
+          # Create run data file
+          python $GITHUB_ACTION_PATH/simple_bisect.py \
             --packages "${{ inputs.track-packages }}" \
             --log-path "${{ inputs.log-path }}" \
             --captured-versions captured-package-versions.json \
-            --store-run \
-            --branch "${{ inputs.bisect-branch }}"
-
-          # Generate comparison for bisection analysis
-          python $GITHUB_ACTION_PATH/track_packages.py \
-            --packages "${{ inputs.track-packages }}" \
-            --log-path "${{ inputs.log-path }}" \
-            --captured-versions captured-package-versions.json \
-            --generate-comparison \
             --branch "${{ inputs.bisect-branch }}" \
-            --output-file bisect-comparison.txt
+            --store-run
         else
-          echo "No packages specified for tracking, skipping package tracking"
+          echo "No packages specified for tracking, skipping bisection"
         fi
+
+    - name: setup git for bisection branch
+      if: ${{ inputs.track-packages != '' }}
+      shell: bash -l {0}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: fetch bisection branch
+      if: ${{ inputs.track-packages != '' }}
+      shell: bash -l {0}
+      run: |
+        # Check if branch exists remotely
+        if git ls-remote --heads origin "${{ inputs.bisect-branch }}" | grep -q "${{ inputs.bisect-branch }}"; then
+          echo "Branch ${{ inputs.bisect-branch }} exists, fetching..."
+          git fetch origin "${{ inputs.bisect-branch }}"
+          git checkout -B "${{ inputs.bisect-branch }}" "origin/${{ inputs.bisect-branch }}"
+        else
+          echo "Branch ${{ inputs.bisect-branch }} doesn't exist, creating orphan branch..."
+          git checkout --orphan "${{ inputs.bisect-branch }}"
+          git rm -rf . || true
+        fi
+
+    - name: commit bisection data
+      if: ${{ inputs.track-packages != '' }}
+      shell: bash -l {0}
+      run: |
+        # Add the new run data file
+        git add run_*.json
+
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Add bisection data for run ${{ github.run_id }}
+
+          Test status: $(python -c "import json; data=json.load(open([f for f in __import__('pathlib').Path('.').glob('run_*.json')][-1])); print(data['test_status'])")
+          Failed tests: $(python -c "import json; data=json.load(open([f for f in __import__('pathlib').Path('.').glob('run_*.json')][-1])); print(len(data.get('failed_tests', [])))")
+          "
+
+          # Push to remote
+          git push origin "${{ inputs.bisect-branch }}"
+        fi
+
+    - name: generate bisection comparison
+      if: ${{ inputs.track-packages != '' }}
+      shell: bash -l {0}
+      run: |
+        # Generate comparison from historical data in the bisection branch
+        python $GITHUB_ACTION_PATH/simple_bisect.py \
+          --packages "${{ inputs.track-packages }}" \
+          --log-path "${{ inputs.log-path }}" \
+          --captured-versions captured-package-versions.json \
+          --branch "${{ inputs.bisect-branch }}" \
+          --generate-comparison
+
+    - name: return to original branch
+      if: ${{ inputs.track-packages != '' && always() }}
+      shell: bash -l {0}
+      run: |
+        # Return to the original branch
+        git checkout -
     - name: produce the issue body
       shell: bash -l {0}
       run: |
