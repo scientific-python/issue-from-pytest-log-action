@@ -11,12 +11,60 @@ import os
 import pathlib
 import subprocess
 import sys
-import tempfile
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
 
 
-def get_all_installed_packages() -> Dict[str, str]:
+# Package metadata for generating GitHub links
+PACKAGE_METADATA = {
+    "numpy": {"github": "numpy/numpy", "type": "releases"},
+    "pandas": {"github": "pandas-dev/pandas", "type": "releases"},
+    "matplotlib": {"github": "matplotlib/matplotlib", "type": "releases"},
+    "scipy": {"github": "scipy/scipy", "type": "releases"},
+    "scikit-learn": {"github": "scikit-learn/scikit-learn", "type": "releases"},
+    "requests": {"github": "psf/requests", "type": "releases"},
+    "django": {"github": "django/django", "type": "releases"},
+    "flask": {"github": "pallets/flask", "type": "releases"},
+    "pytest": {"github": "pytest-dev/pytest", "type": "releases"},
+    "hypothesis": {"github": "HypothesisWorks/hypothesis", "type": "releases"},
+    "xarray": {"github": "pydata/xarray", "type": "releases"},
+    "dask": {"github": "dask/dask", "type": "releases"},
+    "jupyterlab": {"github": "jupyterlab/jupyterlab", "type": "releases"},
+    "notebook": {"github": "jupyter/notebook", "type": "releases"},
+    "ipython": {"github": "ipython/ipython", "type": "releases"},
+    "tensorflow": {"github": "tensorflow/tensorflow", "type": "releases"},
+    "torch": {"github": "pytorch/pytorch", "type": "releases"},
+    "fastapi": {"github": "tiangolo/fastapi", "type": "releases"},
+    "pydantic": {"github": "pydantic/pydantic", "type": "releases"},
+    "sqlalchemy": {"github": "sqlalchemy/sqlalchemy", "type": "releases"},
+    "black": {"github": "psf/black", "type": "releases"},
+    "mypy": {"github": "python/mypy", "type": "releases"},
+    "ruff": {"github": "astral-sh/ruff", "type": "releases"},
+}
+
+
+def generate_package_diff_link(package_name: str, old_version: str, new_version: str) -> str | None:
+    """Generate a GitHub diff link for package version changes."""
+    if package_name not in PACKAGE_METADATA:
+        return None
+
+    metadata = PACKAGE_METADATA[package_name]
+    repo = metadata["github"]
+
+    if metadata["type"] == "releases":
+        # Try different tag formats common in Python packages
+        tag_formats = [
+            f"v{old_version}...v{new_version}",  # v1.0.0...v1.1.0
+            f"{old_version}...{new_version}",    # 1.0.0...1.1.0
+            f"release-{old_version}...release-{new_version}",  # release-1.0.0...release-1.1.0
+        ]
+
+        # Return the first format (most common)
+        return f"https://github.com/{repo}/compare/{tag_formats[0]}"
+
+    return None
+
+
+def get_all_installed_packages() -> dict[str, str | None]:
     """Get all installed packages and their versions."""
     try:
         result = subprocess.run(
@@ -31,7 +79,7 @@ def get_all_installed_packages() -> Dict[str, str]:
         return {}
 
 
-def get_package_version(package_name: str) -> Optional[str]:
+def get_package_version(package_name: str) -> str | None:
     """Get the version of an installed package."""
     try:
         result = subprocess.run(
@@ -48,24 +96,24 @@ def get_package_version(package_name: str) -> Optional[str]:
     return None
 
 
-def get_current_package_versions(packages: List[str], captured_versions_file: str = None) -> Dict[str, Optional[str]]:
+def get_current_package_versions(packages: list[str], captured_versions_file: str | None = None) -> dict[str, str | None]:
     """Get current versions of specified packages."""
     # First try to read from captured versions file if provided
     if captured_versions_file and os.path.exists(captured_versions_file):
         try:
-            with open(captured_versions_file, 'r') as f:
+            with open(captured_versions_file) as f:
                 captured_data = json.load(f)
                 captured_packages = captured_data.get('packages', {})
 
                 if len(packages) == 1 and packages[0].lower() == "all":
-                    return captured_packages
+                    return captured_packages  # type: ignore[return-value]
 
                 # Return only the requested packages from captured data
                 versions = {}
                 for package in packages:
                     versions[package] = captured_packages.get(package)
                 return versions
-        except (json.JSONDecodeError, IOError) as e:
+        except (json.JSONDecodeError, OSError) as e:
             print(f"Warning: Could not read captured versions file {captured_versions_file}: {e}")
             print("Falling back to direct package detection...")
 
@@ -79,11 +127,11 @@ def get_current_package_versions(packages: List[str], captured_versions_file: st
     return versions
 
 
-def extract_failed_tests_from_log(log_path: str) -> List[str]:
+def extract_failed_tests_from_log(log_path: str) -> list[str]:
     """Extract failed test nodeids from pytest log file."""
     failed_tests = []
     try:
-        with open(log_path, 'r') as f:
+        with open(log_path) as f:
             for line in f:
                 try:
                     record = json.loads(line)
@@ -98,7 +146,7 @@ def extract_failed_tests_from_log(log_path: str) -> List[str]:
     return failed_tests
 
 
-def get_git_info() -> Dict[str, str]:
+def get_git_info() -> dict[str, str]:
     """Get current Git commit information."""
     try:
         # Get current commit hash
@@ -153,7 +201,7 @@ def get_git_info() -> Dict[str, str]:
         }
 
 
-def create_bisect_data(packages: List[str], log_path: str = None, captured_versions_file: str = None, workflow_run_id: str = None) -> Dict:
+def create_bisect_data(packages: list[str], log_path: str | None = None, captured_versions_file: str | None = None, workflow_run_id: str | None = None) -> dict:
     """Create bisection data for current environment."""
     if workflow_run_id is None:
         workflow_run_id = os.environ.get("GITHUB_RUN_ID", "unknown")
@@ -169,11 +217,11 @@ def create_bisect_data(packages: List[str], log_path: str = None, captured_versi
     python_version = ".".join(str(v) for v in sys.version_info[:3])
     if captured_versions_file and os.path.exists(captured_versions_file):
         try:
-            with open(captured_versions_file, 'r') as f:
+            with open(captured_versions_file) as f:
                 captured_data = json.load(f)
                 if 'python_version' in captured_data:
                     python_version = captured_data['python_version']
-        except (json.JSONDecodeError, IOError):
+        except (json.JSONDecodeError, OSError):
             pass  # Use default python_version
 
     return {
@@ -188,7 +236,7 @@ def create_bisect_data(packages: List[str], log_path: str = None, captured_versi
 
 
 def store_bisect_data_to_branch(
-    data: Dict, branch_name: str
+    data: dict, branch_name: str
 ) -> bool:
     """Store bisection data to a Git branch."""
     try:
@@ -285,7 +333,7 @@ def store_bisect_data_to_branch(
         return False
 
 
-def retrieve_last_successful_run(branch_name: str) -> Optional[Dict]:
+def retrieve_last_successful_run(branch_name: str) -> dict | None:
     """Retrieve the most recent successful run data from a Git branch."""
     try:
         # Check if branch exists remotely
@@ -347,9 +395,9 @@ def retrieve_last_successful_run(branch_name: str) -> Optional[Dict]:
         return None
 
 
-def find_last_successful_run_for_tests(branch_name: str, failed_tests: List[str]) -> Dict[str, Optional[Dict]]:
+def find_last_successful_run_for_tests(branch_name: str, failed_tests: list[str]) -> dict[str, dict | None]:
     """Find the last successful run for each currently failing test."""
-    test_last_success = {}
+    test_last_success: dict[str, dict | None] = {}
 
     try:
         # Get all run files
@@ -397,7 +445,7 @@ def find_last_successful_run_for_tests(branch_name: str, failed_tests: List[str]
     return test_last_success
 
 
-def get_package_changes(current_packages: Dict, previous_packages: Dict) -> List[str]:
+def get_package_changes(current_packages: dict, previous_packages: dict) -> list[str]:
     """Get list of package changes between two runs."""
     changes = []
     all_packages = set(current_packages.keys()) | set(previous_packages.keys())
@@ -413,14 +461,19 @@ def get_package_changes(current_packages: Dict, previous_packages: Dict) -> List
         elif previous_version is None:
             changes.append(f"- {package}: (new) → {current_version}")
         elif current_version != previous_version:
-            changes.append(f"- {package}: {previous_version} → {current_version}")
+            # Try to generate a GitHub diff link
+            diff_link = generate_package_diff_link(package, previous_version, current_version)
+            if diff_link:
+                changes.append(f"- [{package}: {previous_version} → {current_version}]({diff_link})")
+            else:
+                changes.append(f"- {package}: {previous_version} → {current_version}")
 
     return changes
 
 
 def format_bisect_comparison(
-    current_data: Dict, previous_data: Optional[Dict], branch_name: str
-) -> Optional[str]:
+    current_data: dict, previous_data: dict | None, branch_name: str
+) -> str | None:
     """Format bisection comparison for display in GitHub issue."""
     failed_tests = current_data.get("failed_tests", [])
     if not failed_tests:

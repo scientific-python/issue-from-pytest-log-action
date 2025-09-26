@@ -2,8 +2,8 @@ import json
 import os
 import sys
 import tempfile
-from unittest.mock import Mock, patch
 from datetime import datetime
+from unittest.mock import Mock, patch
 
 import hypothesis.strategies as st
 from hypothesis import given
@@ -361,3 +361,34 @@ def test_retrieve_bisect_data_from_branch_success():
 
         result = track_packages.retrieve_bisect_data_from_branch("bisect-data")
         assert result == mock_data
+
+
+def test_generate_package_diff_link():
+    """Test generating GitHub diff links for package changes."""
+    # Test known package
+    link = track_packages.generate_package_diff_link("numpy", "1.24.0", "1.25.0")
+    assert link == "https://github.com/numpy/numpy/compare/v1.24.0...v1.25.0"
+
+    # Test unknown package
+    link = track_packages.generate_package_diff_link("unknown-package", "1.0.0", "2.0.0")
+    assert link is None
+
+
+def test_get_package_changes_with_github_links():
+    """Test package changes include GitHub links when available."""
+    previous_packages = {"numpy": "1.24.0", "unknown-pkg": "1.0.0"}
+    current_packages = {"numpy": "1.25.0", "unknown-pkg": "2.0.0"}
+
+    changes = track_packages.get_package_changes(current_packages, previous_packages)
+
+    # Should have GitHub link for numpy
+    numpy_change = next((c for c in changes if "numpy" in c), None)
+    assert numpy_change is not None
+    assert "https://github.com/numpy/numpy/compare/v1.24.0...v1.25.0" in numpy_change
+    assert "[numpy: 1.24.0 → 1.25.0]" in numpy_change
+
+    # Should not have GitHub link for unknown package
+    unknown_change = next((c for c in changes if "unknown-pkg" in c), None)
+    assert unknown_change is not None
+    assert "unknown-pkg: 1.0.0 → 2.0.0" in unknown_change
+    assert "https://" not in unknown_change
