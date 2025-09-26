@@ -60,7 +60,9 @@ def test_get_current_package_versions_specific():
             "nonexistent": None,
         }.get(pkg)
 
-        versions = track_packages.get_current_package_versions(["pytest", "hypothesis", "nonexistent"])
+        versions = track_packages.get_current_package_versions(
+            ["pytest", "hypothesis", "nonexistent"]
+        )
         expected = {
             "pytest": "7.4.0",
             "hypothesis": "6.82.0",
@@ -71,15 +73,11 @@ def test_get_current_package_versions_specific():
 
 def test_get_current_package_versions_from_captured_file():
     """Test getting versions from a captured JSON file."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         captured_data = {
             "python_version": "3.11.0",
-            "packages": {
-                "pytest": "7.4.0",
-                "numpy": "1.24.0",
-                "requests": "2.31.0"
-            },
-            "capture_method": "importlib.metadata"
+            "packages": {"pytest": "7.4.0", "numpy": "1.24.0", "requests": "2.31.0"},
+            "capture_method": "importlib.metadata",
         }
         json.dump(captured_data, f)
         captured_file = f.name
@@ -89,20 +87,14 @@ def test_get_current_package_versions_from_captured_file():
         versions = track_packages.get_current_package_versions(
             ["pytest", "numpy", "missing"], captured_file
         )
-        expected = {
-            "pytest": "7.4.0",
-            "numpy": "1.24.0",
-            "missing": None
-        }
+        expected = {"pytest": "7.4.0", "numpy": "1.24.0", "missing": None}
         assert versions == expected
 
         # Test "all" packages
-        all_versions = track_packages.get_current_package_versions(["all"], captured_file)
-        expected_all = {
-            "pytest": "7.4.0",
-            "numpy": "1.24.0",
-            "requests": "2.31.0"
-        }
+        all_versions = track_packages.get_current_package_versions(
+            ["all"], captured_file
+        )
+        expected_all = {"pytest": "7.4.0", "numpy": "1.24.0", "requests": "2.31.0"}
         assert all_versions == expected_all
     finally:
         os.unlink(captured_file)
@@ -110,7 +102,7 @@ def test_get_current_package_versions_from_captured_file():
 
 def test_get_current_package_versions_fallback_on_bad_file():
     """Test fallback when captured file is invalid."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         f.write("invalid json content")
         bad_file = f.name
 
@@ -140,9 +132,15 @@ def test_get_git_info():
         # Mock the sequence of git commands
         mock_run.side_effect = [
             Mock(stdout="abc123def456789\n", check=True),  # git rev-parse HEAD
-            Mock(stdout="Fix test regression\n", check=True),  # git log -1 --pretty=format:%s
-            Mock(stdout="John Doe <john@example.com>\n", check=True),  # git log -1 --pretty=format:%an <%ae>
-            Mock(stdout="2024-01-15 10:30:00 +0000\n", check=True),  # git log -1 --pretty=format:%ci
+            Mock(
+                stdout="Fix test regression\n", check=True
+            ),  # git log -1 --pretty=format:%s
+            Mock(
+                stdout="John Doe <john@example.com>\n", check=True
+            ),  # git log -1 --pretty=format:%an <%ae>
+            Mock(
+                stdout="2024-01-15 10:30:00 +0000\n", check=True
+            ),  # git log -1 --pretty=format:%ci
         ]
 
         git_info = track_packages.get_git_info()
@@ -159,13 +157,23 @@ def test_get_git_info():
 
 def test_extract_failed_tests_from_log():
     """Test extracting failed tests from pytest log file."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         # Write sample pytest log entries
-        f.write('{"$report_type": "TestReport", "nodeid": "test_file.py::test_pass", "outcome": "passed"}\n')
-        f.write('{"$report_type": "TestReport", "nodeid": "test_file.py::test_fail1", "outcome": "failed"}\n')
-        f.write('{"$report_type": "CollectReport", "nodeid": "test_file.py::test_fail2", "outcome": "failed"}\n')
-        f.write('{"$report_type": "TestReport", "nodeid": "test_file.py::test_skip", "outcome": "skipped"}\n')
-        f.write('{"$report_type": "WarningMessage", "outcome": "failed"}\n')  # Should be ignored
+        f.write(
+            '{"$report_type": "TestReport", "nodeid": "test_file.py::test_pass", "outcome": "passed"}\n'
+        )
+        f.write(
+            '{"$report_type": "TestReport", "nodeid": "test_file.py::test_fail1", "outcome": "failed"}\n'
+        )
+        f.write(
+            '{"$report_type": "CollectReport", "nodeid": "test_file.py::test_fail2", "outcome": "failed"}\n'
+        )
+        f.write(
+            '{"$report_type": "TestReport", "nodeid": "test_file.py::test_skip", "outcome": "skipped"}\n'
+        )
+        f.write(
+            '{"$report_type": "WarningMessage", "outcome": "failed"}\n'
+        )  # Should be ignored
         log_path = f.name
 
     try:
@@ -203,9 +211,11 @@ def test_create_bisect_data():
     """Test creating bisection data."""
     packages = ["pytest", "hypothesis"]
 
-    with patch("track_packages.get_current_package_versions") as mock_get_versions, \
-         patch("track_packages.get_git_info") as mock_get_git, \
-         patch("track_packages.extract_failed_tests_from_log") as mock_extract_tests:
+    with patch(
+        "track_packages.get_current_package_versions"
+    ) as mock_get_versions, patch("track_packages.get_git_info") as mock_get_git, patch(
+        "track_packages.extract_failed_tests_from_log"
+    ) as mock_extract_tests:
 
         mock_get_versions.return_value = {"pytest": "7.4.0", "hypothesis": "6.82.0"}
         mock_get_git.return_value = {
@@ -221,7 +231,9 @@ def test_create_bisect_data():
             data = track_packages.create_bisect_data(packages)
 
             assert data["workflow_run_id"] == "12345"
-            assert data["python_version"] == ".".join(str(v) for v in sys.version_info[:3])
+            assert data["python_version"] == ".".join(
+                str(v) for v in sys.version_info[:3]
+            )
             assert data["packages"] == {"pytest": "7.4.0", "hypothesis": "6.82.0"}
             assert data["failed_tests"] == []
             assert data["test_status"] == "passed"
@@ -236,20 +248,18 @@ def test_create_bisect_data_with_captured_versions():
     packages = ["pytest", "numpy"]
 
     # Create a captured versions file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         captured_data = {
             "python_version": "3.11.5",
-            "packages": {
-                "pytest": "7.4.2",
-                "numpy": "1.25.1"
-            }
+            "packages": {"pytest": "7.4.2", "numpy": "1.25.1"},
         }
         json.dump(captured_data, f)
         captured_file = f.name
 
     try:
-        with patch("track_packages.get_git_info") as mock_get_git, \
-             patch("track_packages.extract_failed_tests_from_log") as mock_extract_tests:
+        with patch("track_packages.get_git_info") as mock_get_git, patch(
+            "track_packages.extract_failed_tests_from_log"
+        ) as mock_extract_tests:
 
             mock_get_git.return_value = {
                 "commit_hash": "def456",
@@ -261,11 +271,16 @@ def test_create_bisect_data_with_captured_versions():
             mock_extract_tests.return_value = ["test_fail.py::test_example"]
 
             with patch.dict("os.environ", {"GITHUB_RUN_ID": "67890"}):
-                data = track_packages.create_bisect_data(packages, captured_versions_file=captured_file)
+                data = track_packages.create_bisect_data(
+                    packages, captured_versions_file=captured_file
+                )
 
                 assert data["workflow_run_id"] == "67890"
                 assert data["python_version"] == "3.11.5"  # From captured file
-                assert data["packages"] == {"pytest": "7.4.2", "numpy": "1.25.1"}  # From captured file
+                assert data["packages"] == {
+                    "pytest": "7.4.2",
+                    "numpy": "1.25.1",
+                }  # From captured file
                 assert data["failed_tests"] == ["test_fail.py::test_example"]
                 assert data["test_status"] == "failed"
                 assert data["git"]["commit_hash"] == "def456"
@@ -370,7 +385,9 @@ def test_generate_package_diff_link():
     assert link == "https://github.com/numpy/numpy/compare/v1.24.0...v1.25.0"
 
     # Test unknown package
-    link = track_packages.generate_package_diff_link("unknown-package", "1.0.0", "2.0.0")
+    link = track_packages.generate_package_diff_link(
+        "unknown-package", "1.0.0", "2.0.0"
+    )
     assert link is None
 
 

@@ -175,13 +175,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      contents: write  # Needed for bisection branch
+      contents: write # Needed for bisection branch
 
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0  # Needed for bisection branch operations
+          fetch-depth: 0 # Needed for bisection branch operations
 
       - uses: actions/setup-python@v4
         with:
@@ -195,12 +195,12 @@ jobs:
 
       # Track package versions and create issue if tests fail
       - name: Track packages and create issue if needed
-        if: always()  # Run regardless of test outcome to store data
+        if: always() # Run regardless of test outcome to store data
         uses: scientific-python/issue-from-pytest-log-action@f94477e45ef40e4403d7585ba639a9a3bcc53d43 # v1.3.0
         with:
           log-path: pytest-log.jsonl
           track-packages: "xarray,pandas,numpy"
-          python-command: "python"  # Default, can be omitted
+          python-command: "python" # Default, can be omitted
 ```
 
 #### Conda/Mamba Setup
@@ -239,7 +239,7 @@ jobs:
         with:
           log-path: pytest-log.jsonl
           track-packages: "numpy,pandas,pytest"
-          python-command: "python"  # Conda python is already in PATH
+          python-command: "python" # Conda python is already in PATH
 ```
 
 #### UV Setup
@@ -268,7 +268,7 @@ jobs:
         uses: scientific-python/issue-from-pytest-log-action@f94477e45ef40e4403d7585ba639a9a3bcc53d43 # v1.3.0
         with:
           log-path: pytest-log.jsonl
-          track-packages: "all"  # Track all packages
+          track-packages: "all" # Track all packages
           python-command: "uv run python"
 ```
 
@@ -369,6 +369,7 @@ When enabled, the bisection feature will add comprehensive analysis to GitHub is
 ```
 
 This enhanced bisection feature helps identify:
+
 1. **For each failing test**, exactly which dependencies and code changed since it last passed
 2. **Precise correlation** between specific changes and test failures
 3. **Historical context** with exact commits and timestamps

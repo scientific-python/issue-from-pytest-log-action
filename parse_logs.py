@@ -242,7 +242,9 @@ def format_collection_error(error, **formatter_kwargs):
     ).format(py_version=py_version, name=error.name, traceback=error.repr_)
 
 
-def include_bisection_info(message: str, bisect_file: str = "bisect-comparison.txt") -> str:
+def include_bisection_info(
+    message: str, bisect_file: str = "bisect-comparison.txt"
+) -> str:
     """Include bisection information in the issue message if available."""
     bisect_path = pathlib.Path(bisect_file)
     if bisect_path.exists():

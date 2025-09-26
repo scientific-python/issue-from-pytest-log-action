@@ -41,7 +41,9 @@ PACKAGE_METADATA = {
 }
 
 
-def generate_package_diff_link(package_name: str, old_version: str, new_version: str) -> str | None:
+def generate_package_diff_link(
+    package_name: str, old_version: str, new_version: str
+) -> str | None:
     """Generate a GitHub diff link for package version changes."""
     if package_name not in PACKAGE_METADATA:
         return None
@@ -53,7 +55,7 @@ def generate_package_diff_link(package_name: str, old_version: str, new_version:
         # Try different tag formats common in Python packages
         tag_formats = [
             f"v{old_version}...v{new_version}",  # v1.0.0...v1.1.0
-            f"{old_version}...{new_version}",    # 1.0.0...1.1.0
+            f"{old_version}...{new_version}",  # 1.0.0...1.1.0
             f"release-{old_version}...release-{new_version}",  # release-1.0.0...release-1.1.0
         ]
 
@@ -95,14 +97,16 @@ def get_package_version(package_name: str) -> str | None:
     return None
 
 
-def get_current_package_versions(packages: list[str], captured_versions_file: str | None = None) -> dict[str, str | None]:
+def get_current_package_versions(
+    packages: list[str], captured_versions_file: str | None = None
+) -> dict[str, str | None]:
     """Get current versions of specified packages."""
     # First try to read from captured versions file if provided
     if captured_versions_file and os.path.exists(captured_versions_file):
         try:
             with open(captured_versions_file) as f:
                 captured_data = json.load(f)
-                captured_packages = captured_data.get('packages', {})
+                captured_packages = captured_data.get("packages", {})
 
                 if len(packages) == 1 and packages[0].lower() == "all":
                     return captured_packages  # type: ignore[return-value]
@@ -113,7 +117,9 @@ def get_current_package_versions(packages: list[str], captured_versions_file: st
                     versions[package] = captured_packages.get(package)
                 return versions
         except (json.JSONDecodeError, OSError) as e:
-            print(f"Warning: Could not read captured versions file {captured_versions_file}: {e}")
+            print(
+                f"Warning: Could not read captured versions file {captured_versions_file}: {e}"
+            )
             print("Falling back to direct package detection...")
 
     # Fallback to direct detection (original behavior)
@@ -134,9 +140,11 @@ def extract_failed_tests_from_log(log_path: str) -> list[str]:
             for line in f:
                 try:
                     record = json.loads(line)
-                    if (record.get("$report_type") in ["TestReport", "CollectReport"] and
-                        record.get("outcome") == "failed" and
-                        record.get("nodeid")):
+                    if (
+                        record.get("$report_type") in ["TestReport", "CollectReport"]
+                        and record.get("outcome") == "failed"
+                        and record.get("nodeid")
+                    ):
                         failed_tests.append(record["nodeid"])
                 except json.JSONDecodeError:
                     continue
@@ -200,7 +208,12 @@ def get_git_info() -> dict[str, str]:
         }
 
 
-def create_bisect_data(packages: list[str], log_path: str | None = None, captured_versions_file: str | None = None, workflow_run_id: str | None = None) -> dict:
+def create_bisect_data(
+    packages: list[str],
+    log_path: str | None = None,
+    captured_versions_file: str | None = None,
+    workflow_run_id: str | None = None,
+) -> dict:
     """Create bisection data for current environment."""
     if workflow_run_id is None:
         workflow_run_id = os.environ.get("GITHUB_RUN_ID", "unknown")
@@ -218,8 +231,8 @@ def create_bisect_data(packages: list[str], log_path: str | None = None, capture
         try:
             with open(captured_versions_file) as f:
                 captured_data = json.load(f)
-                if 'python_version' in captured_data:
-                    python_version = captured_data['python_version']
+                if "python_version" in captured_data:
+                    python_version = captured_data["python_version"]
         except (json.JSONDecodeError, OSError):
             pass  # Use default python_version
 
@@ -234,9 +247,7 @@ def create_bisect_data(packages: list[str], log_path: str | None = None, capture
     }
 
 
-def store_bisect_data_to_branch(
-    data: dict, branch_name: str
-) -> bool:
+def store_bisect_data_to_branch(data: dict, branch_name: str) -> bool:
     """Store bisection data to a Git branch."""
     try:
         # Create filename based on run ID and timestamp
@@ -244,10 +255,22 @@ def store_bisect_data_to_branch(
 
         # Configure git user if not already set (needed for GitHub Actions)
         try:
-            subprocess.run(["git", "config", "user.name"], check=True, capture_output=True)
+            subprocess.run(
+                ["git", "config", "user.name"], check=True, capture_output=True
+            )
         except subprocess.CalledProcessError:
-            subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=True)
-            subprocess.run(["git", "config", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
+            subprocess.run(
+                ["git", "config", "user.name", "github-actions[bot]"], check=True
+            )
+            subprocess.run(
+                [
+                    "git",
+                    "config",
+                    "user.email",
+                    "github-actions[bot]@users.noreply.github.com",
+                ],
+                check=True,
+            )
 
         # Check if branch exists remotely
         branch_exists_result = subprocess.run(
@@ -263,7 +286,11 @@ def store_bisect_data_to_branch(
             capture_output=True,
             text=True,
         )
-        original_branch = current_branch_result.stdout.strip() if current_branch_result.returncode == 0 else None
+        original_branch = (
+            current_branch_result.stdout.strip()
+            if current_branch_result.returncode == 0
+            else None
+        )
 
         try:
             if branch_exists:
@@ -271,21 +298,31 @@ def store_bisect_data_to_branch(
                 subprocess.run(["git", "fetch", "origin", branch_name], check=True)
 
                 # Check if local branch exists
-                local_branch_exists = subprocess.run(
-                    ["git", "rev-parse", "--verify", branch_name],
-                    capture_output=True,
-                ).returncode == 0
+                local_branch_exists = (
+                    subprocess.run(
+                        ["git", "rev-parse", "--verify", branch_name],
+                        capture_output=True,
+                    ).returncode
+                    == 0
+                )
 
                 if local_branch_exists:
                     subprocess.run(["git", "checkout", branch_name], check=True)
-                    subprocess.run(["git", "reset", "--hard", f"origin/{branch_name}"], check=True)
+                    subprocess.run(
+                        ["git", "reset", "--hard", f"origin/{branch_name}"], check=True
+                    )
                 else:
-                    subprocess.run(["git", "checkout", "-b", branch_name, f"origin/{branch_name}"], check=True)
+                    subprocess.run(
+                        ["git", "checkout", "-b", branch_name, f"origin/{branch_name}"],
+                        check=True,
+                    )
             else:
                 # Create new orphan branch
                 subprocess.run(["git", "checkout", "--orphan", branch_name], check=True)
                 # Remove any existing files from the new branch
-                subprocess.run(["git", "rm", "-rf", "."], capture_output=True, check=False)
+                subprocess.run(
+                    ["git", "rm", "-rf", "."], capture_output=True, check=False
+                )
 
             # Write the data file
             pathlib.Path(filename).write_text(json.dumps(data, indent=2))
@@ -312,12 +349,20 @@ def store_bisect_data_to_branch(
             # Restore original branch if possible
             if original_branch and original_branch != branch_name:
                 try:
-                    subprocess.run(["git", "checkout", original_branch], check=True, capture_output=True)
+                    subprocess.run(
+                        ["git", "checkout", original_branch],
+                        check=True,
+                        capture_output=True,
+                    )
                 except subprocess.CalledProcessError:
                     # If we can't restore, at least try to get back to main/master
                     for fallback_branch in ["main", "master"]:
                         try:
-                            subprocess.run(["git", "checkout", fallback_branch], check=True, capture_output=True)
+                            subprocess.run(
+                                ["git", "checkout", fallback_branch],
+                                check=True,
+                                capture_output=True,
+                            )
                             break
                         except subprocess.CalledProcessError:
                             continue
@@ -325,7 +370,9 @@ def store_bisect_data_to_branch(
         return True
     except subprocess.CalledProcessError as e:
         print(f"Error storing bisect data to branch '{branch_name}': {e}")
-        print(f"Make sure the repository has proper permissions and the branch name '{branch_name}' is valid")
+        print(
+            f"Make sure the repository has proper permissions and the branch name '{branch_name}' is valid"
+        )
         return False
     except Exception as e:
         print(f"Unexpected error storing bisect data: {e}")
@@ -347,7 +394,9 @@ def retrieve_last_successful_run(branch_name: str) -> dict | None:
             return None
 
         # Fetch the branch
-        subprocess.run(["git", "fetch", "origin", f"{branch_name}:{branch_name}"], check=True)
+        subprocess.run(
+            ["git", "fetch", "origin", f"{branch_name}:{branch_name}"], check=True
+        )
 
         # List all JSON files in the branch
         result = subprocess.run(
@@ -357,7 +406,9 @@ def retrieve_last_successful_run(branch_name: str) -> dict | None:
             check=True,
         )
 
-        json_files = [f for f in result.stdout.strip().split('\n') if f.endswith('.json')]
+        json_files = [
+            f for f in result.stdout.strip().split("\n") if f.endswith(".json")
+        ]
 
         if not json_files:
             return None
@@ -381,7 +432,10 @@ def retrieve_last_successful_run(branch_name: str) -> dict | None:
                 # Check if this was a successful run
                 if run_data.get("test_status") == "passed":
                     timestamp = run_data.get("timestamp")
-                    if timestamp and (most_recent_timestamp is None or timestamp > most_recent_timestamp):
+                    if timestamp and (
+                        most_recent_timestamp is None
+                        or timestamp > most_recent_timestamp
+                    ):
                         most_recent_timestamp = timestamp
                         most_recent_success = run_data
 
@@ -394,7 +448,9 @@ def retrieve_last_successful_run(branch_name: str) -> dict | None:
         return None
 
 
-def find_last_successful_run_for_tests(branch_name: str, failed_tests: list[str]) -> dict[str, dict | None]:
+def find_last_successful_run_for_tests(
+    branch_name: str, failed_tests: list[str]
+) -> dict[str, dict | None]:
     """Find the last successful run for each currently failing test."""
     test_last_success: dict[str, dict | None] = {}
 
@@ -407,7 +463,9 @@ def find_last_successful_run_for_tests(branch_name: str, failed_tests: list[str]
             check=True,
         )
 
-        json_files = [f for f in result.stdout.strip().split('\n') if f.endswith('.json')]
+        json_files = [
+            f for f in result.stdout.strip().split("\n") if f.endswith(".json")
+        ]
 
         # Get all run data and sort by timestamp (newest first)
         all_runs = []
@@ -461,9 +519,13 @@ def get_package_changes(current_packages: dict, previous_packages: dict) -> list
             changes.append(f"- {package}: (new) → {current_version}")
         elif current_version != previous_version:
             # Try to generate a GitHub diff link
-            diff_link = generate_package_diff_link(package, previous_version, current_version)
+            diff_link = generate_package_diff_link(
+                package, previous_version, current_version
+            )
             if diff_link:
-                changes.append(f"- [{package}: {previous_version} → {current_version}]({diff_link})")
+                changes.append(
+                    f"- [{package}: {previous_version} → {current_version}]({diff_link})"
+                )
             else:
                 changes.append(f"- {package}: {previous_version} → {current_version}")
 
@@ -496,7 +558,9 @@ def format_bisect_comparison(
             last_success_git = last_success.get("git", {})
 
             # Package changes since last pass
-            package_changes = get_package_changes(current_packages, last_success_packages)
+            package_changes = get_package_changes(
+                current_packages, last_success_packages
+            )
             if package_changes:
                 test_section.append("### Package changes since last pass")
                 test_section.extend(package_changes)
@@ -508,17 +572,27 @@ def format_bisect_comparison(
             if current_git.get("commit_hash") != last_success_git.get("commit_hash"):
                 prev_commit = last_success_git.get("commit_hash_short", "unknown")
                 curr_commit = current_git.get("commit_hash_short", "unknown")
-                prev_msg = last_success_git.get("commit_message", "")[:60] + ("..." if len(last_success_git.get("commit_message", "")) > 60 else "")
-                curr_msg = current_git.get("commit_message", "")[:60] + ("..." if len(current_git.get("commit_message", "")) > 60 else "")
+                prev_msg = last_success_git.get("commit_message", "")[:60] + (
+                    "..."
+                    if len(last_success_git.get("commit_message", "")) > 60
+                    else ""
+                )
+                curr_msg = current_git.get("commit_message", "")[:60] + (
+                    "..." if len(current_git.get("commit_message", "")) > 60 else ""
+                )
 
                 test_section.append("### Code changes since last pass")
                 test_section.append(f"- {prev_commit} ({prev_msg})")
                 test_section.append(f"- → {curr_commit} ({curr_msg})")
-                test_section.append(f"- Last passed in run #{last_success['workflow_run_id']} on {last_success['timestamp']}")
+                test_section.append(
+                    f"- Last passed in run #{last_success['workflow_run_id']} on {last_success['timestamp']}"
+                )
             else:
                 test_section.append("### Code changes since last pass")
                 test_section.append("- No code changes detected")
-                test_section.append(f"- Last passed in run #{last_success['workflow_run_id']} on {last_success['timestamp']}")
+                test_section.append(
+                    f"- Last passed in run #{last_success['workflow_run_id']} on {last_success['timestamp']}"
+                )
         else:
             test_section.append("### Analysis")
             test_section.append("- No recent successful run found for this test")
@@ -576,14 +650,18 @@ def main():
         data = create_bisect_data(packages, args.log_path, args.captured_versions)
         success = store_bisect_data_to_branch(data, args.branch)
         if success:
-            print(f"Successfully stored run data to branch '{args.branch}' (status: {data['test_status']})")
+            print(
+                f"Successfully stored run data to branch '{args.branch}' (status: {data['test_status']})"
+            )
         else:
             print("Failed to store run data", file=sys.stderr)
             sys.exit(1)
 
     if args.generate_comparison:
         # Generate comparison with last successful run
-        current_data = create_bisect_data(packages, args.log_path, args.captured_versions)
+        current_data = create_bisect_data(
+            packages, args.log_path, args.captured_versions
+        )
         previous_data = retrieve_last_successful_run(args.branch)
 
         comparison = format_bisect_comparison(current_data, previous_data, args.branch)
