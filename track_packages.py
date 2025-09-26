@@ -41,9 +41,7 @@ PACKAGE_METADATA = {
 }
 
 
-def generate_package_diff_link(
-    package_name: str, old_version: str, new_version: str
-) -> str | None:
+def generate_package_diff_link(package_name: str, old_version: str, new_version: str) -> str | None:
     """Generate a GitHub diff link for package version changes."""
     if package_name not in PACKAGE_METADATA:
         return None
@@ -117,9 +115,7 @@ def get_current_package_versions(
                     versions[package] = captured_packages.get(package)
                 return versions
         except (json.JSONDecodeError, OSError) as e:
-            print(
-                f"Warning: Could not read captured versions file {captured_versions_file}: {e}"
-            )
+            print(f"Warning: Could not read captured versions file {captured_versions_file}: {e}")
             print("Falling back to direct package detection...")
 
     # Fallback to direct detection (original behavior)
@@ -255,13 +251,9 @@ def store_bisect_data_to_branch(data: dict, branch_name: str) -> bool:
 
         # Configure git user if not already set (needed for GitHub Actions)
         try:
-            subprocess.run(
-                ["git", "config", "user.name"], check=True, capture_output=True
-            )
+            subprocess.run(["git", "config", "user.name"], check=True, capture_output=True)
         except subprocess.CalledProcessError:
-            subprocess.run(
-                ["git", "config", "user.name", "github-actions[bot]"], check=True
-            )
+            subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=True)
             subprocess.run(
                 [
                     "git",
@@ -287,9 +279,7 @@ def store_bisect_data_to_branch(data: dict, branch_name: str) -> bool:
             text=True,
         )
         original_branch = (
-            current_branch_result.stdout.strip()
-            if current_branch_result.returncode == 0
-            else None
+            current_branch_result.stdout.strip() if current_branch_result.returncode == 0 else None
         )
 
         try:
@@ -308,9 +298,7 @@ def store_bisect_data_to_branch(data: dict, branch_name: str) -> bool:
 
                 if local_branch_exists:
                     subprocess.run(["git", "checkout", branch_name], check=True)
-                    subprocess.run(
-                        ["git", "reset", "--hard", f"origin/{branch_name}"], check=True
-                    )
+                    subprocess.run(["git", "reset", "--hard", f"origin/{branch_name}"], check=True)
                 else:
                     subprocess.run(
                         ["git", "checkout", "-b", branch_name, f"origin/{branch_name}"],
@@ -320,9 +308,7 @@ def store_bisect_data_to_branch(data: dict, branch_name: str) -> bool:
                 # Create new orphan branch
                 subprocess.run(["git", "checkout", "--orphan", branch_name], check=True)
                 # Remove any existing files from the new branch
-                subprocess.run(
-                    ["git", "rm", "-rf", "."], capture_output=True, check=False
-                )
+                subprocess.run(["git", "rm", "-rf", "."], capture_output=True, check=False)
 
             # Write the data file
             pathlib.Path(filename).write_text(json.dumps(data, indent=2))
@@ -394,9 +380,7 @@ def retrieve_last_successful_run(branch_name: str) -> dict | None:
             return None
 
         # Fetch the branch
-        subprocess.run(
-            ["git", "fetch", "origin", f"{branch_name}:{branch_name}"], check=True
-        )
+        subprocess.run(["git", "fetch", "origin", f"{branch_name}:{branch_name}"], check=True)
 
         # List all JSON files in the branch
         result = subprocess.run(
@@ -406,9 +390,7 @@ def retrieve_last_successful_run(branch_name: str) -> dict | None:
             check=True,
         )
 
-        json_files = [
-            f for f in result.stdout.strip().split("\n") if f.endswith(".json")
-        ]
+        json_files = [f for f in result.stdout.strip().split("\n") if f.endswith(".json")]
 
         if not json_files:
             return None
@@ -433,8 +415,7 @@ def retrieve_last_successful_run(branch_name: str) -> dict | None:
                 if run_data.get("test_status") == "passed":
                     timestamp = run_data.get("timestamp")
                     if timestamp and (
-                        most_recent_timestamp is None
-                        or timestamp > most_recent_timestamp
+                        most_recent_timestamp is None or timestamp > most_recent_timestamp
                     ):
                         most_recent_timestamp = timestamp
                         most_recent_success = run_data
@@ -463,9 +444,7 @@ def find_last_successful_run_for_tests(
             check=True,
         )
 
-        json_files = [
-            f for f in result.stdout.strip().split("\n") if f.endswith(".json")
-        ]
+        json_files = [f for f in result.stdout.strip().split("\n") if f.endswith(".json")]
 
         # Get all run data and sort by timestamp (newest first)
         all_runs = []
@@ -519,9 +498,7 @@ def get_package_changes(current_packages: dict, previous_packages: dict) -> list
             changes.append(f"- {package}: (new) → {current_version}")
         elif current_version != previous_version:
             # Try to generate a GitHub diff link
-            diff_link = generate_package_diff_link(
-                package, previous_version, current_version
-            )
+            diff_link = generate_package_diff_link(package, previous_version, current_version)
             if diff_link:
                 changes.append(
                     f"- [{package}: {previous_version} → {current_version}]({diff_link})"
@@ -558,9 +535,7 @@ def format_bisect_comparison(
             last_success_git = last_success.get("git", {})
 
             # Package changes since last pass
-            package_changes = get_package_changes(
-                current_packages, last_success_packages
-            )
+            package_changes = get_package_changes(current_packages, last_success_packages)
             if package_changes:
                 test_section.append("### Package changes since last pass")
                 test_section.extend(package_changes)
@@ -573,9 +548,7 @@ def format_bisect_comparison(
                 prev_commit = last_success_git.get("commit_hash_short", "unknown")
                 curr_commit = current_git.get("commit_hash_short", "unknown")
                 prev_msg = last_success_git.get("commit_message", "")[:60] + (
-                    "..."
-                    if len(last_success_git.get("commit_message", "")) > 60
-                    else ""
+                    "..." if len(last_success_git.get("commit_message", "")) > 60 else ""
                 )
                 curr_msg = current_git.get("commit_message", "")[:60] + (
                     "..." if len(current_git.get("commit_message", "")) > 60 else ""
@@ -659,9 +632,7 @@ def main():
 
     if args.generate_comparison:
         # Generate comparison with last successful run
-        current_data = create_bisect_data(
-            packages, args.log_path, args.captured_versions
-        )
+        current_data = create_bisect_data(packages, args.log_path, args.captured_versions)
         previous_data = retrieve_last_successful_run(args.branch)
 
         comparison = format_bisect_comparison(current_data, previous_data, args.branch)

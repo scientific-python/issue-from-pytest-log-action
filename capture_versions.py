@@ -5,6 +5,7 @@ Capture package versions from the test environment.
 This script captures package versions using the specified Python command
 to ensure we get versions from the same environment that ran the tests.
 """
+
 import json
 import os
 import sys
@@ -68,9 +69,7 @@ def main():
         "python_executable": sys.executable,
         "packages": versions,
         "capture_method": (
-            "importlib.metadata"
-            if "importlib.metadata" in sys.modules
-            else "pkg_resources"
+            "importlib.metadata" if "importlib.metadata" in sys.modules else "pkg_resources"
         ),
     }
 
