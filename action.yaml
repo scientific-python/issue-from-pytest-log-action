@@ -23,6 +23,30 @@ inputs:
       have commit rights.
     required: false
     default: ""
+  track-packages:
+    description: >-
+      Comma-separated list of packages to track for bisection (e.g., "xarray,pandas,numpy").
+      Use "all" to track all installed packages. If provided, the action will compare
+      package versions between the last successful run and the current failed run.
+    required: false
+    default: ""
+  bisect-storage-method:
+    description: >-
+      Storage method for bisection data. Either "branch" or "artifact".
+    required: false
+    default: "branch"
+  bisect-branch:
+    description: >-
+      Branch name for storing bisection data when using branch storage method.
+    required: false
+    default: "bisect-data"
+  python-command:
+    description: >-
+      Command to invoke Python in the test environment (e.g., "python", "python3",
+      "conda run python", "uv run python", "poetry run python"). This ensures
+      package versions are captured from the same environment that ran the tests.
+    required: false
+    default: "python"
 outputs: {}
 branding:
   color: "red"
@@ -41,6 +65,105 @@ runs:
       shell: bash -l {0}
       run: |
         python -m pip install pytest more-itertools
+    - name: capture package versions from test environment
+      shell: bash -l {0}
+      run: |
+        if [ -n "${{ inputs.track-packages }}" ]; then
+          echo "Capturing package versions using: ${{ inputs.python-command }}"
+
+          # Capture package versions from the test environment
+          ${{ inputs.python-command }} -c "
+import json
+import sys
+
+packages_input = '${{ inputs.track-packages }}'.strip()
+if not packages_input:
+    exit()
+
+packages = [pkg.strip() for pkg in packages_input.split(',')]
+versions = {}
+
+# Try importlib.metadata first (Python 3.8+)
+try:
+    import importlib.metadata as metadata
+    if len(packages) == 1 and packages[0].lower() == 'all':
+        print('Capturing all installed packages...')
+        for dist in metadata.distributions():
+            versions[dist.name] = dist.version
+    else:
+        print(f'Capturing specific packages: {packages}')
+        for pkg in packages:
+            if pkg:
+                try:
+                    versions[pkg] = metadata.version(pkg)
+                    print(f'  {pkg}: {versions[pkg]}')
+                except Exception as e:
+                    versions[pkg] = None
+                    print(f'  {pkg}: not found ({e})')
+except ImportError:
+    print('importlib.metadata not available, trying pkg_resources...')
+    # Fallback to pkg_resources
+    try:
+        import pkg_resources
+        if len(packages) == 1 and packages[0].lower() == 'all':
+            print('Capturing all installed packages...')
+            for dist in pkg_resources.working_set:
+                versions[dist.project_name] = dist.version
+        else:
+            print(f'Capturing specific packages: {packages}')
+            for pkg in packages:
+                if pkg:
+                    try:
+                        versions[pkg] = pkg_resources.get_distribution(pkg).version
+                        print(f'  {pkg}: {versions[pkg]}')
+                    except Exception as e:
+                        versions[pkg] = None
+                        print(f'  {pkg}: not found ({e})')
+    except ImportError:
+        print('ERROR: No package detection method available')
+        versions = {'error': 'No package detection method available'}
+
+# Save captured versions
+capture_data = {
+    'python_version': '.'.join(map(str, sys.version_info[:3])),
+    'python_executable': sys.executable,
+    'packages': versions,
+    'capture_method': 'importlib.metadata' if 'importlib.metadata' in sys.modules else 'pkg_resources'
+}
+
+with open('captured-package-versions.json', 'w') as f:
+    json.dump(capture_data, f, indent=2)
+
+print(f'Captured {len(versions)} package versions')
+"
+        else
+          echo "No packages specified for tracking, skipping package capture"
+        fi
+    - name: handle package tracking
+      shell: bash -l {0}
+      run: |
+        if [ -n "${{ inputs.track-packages }}" ]; then
+          echo "Processing package tracking for: ${{ inputs.track-packages }}"
+
+          # Always store current run data (packages + test results)
+          python $GITHUB_ACTION_PATH/track_packages.py \
+            --packages "${{ inputs.track-packages }}" \
+            --log-path "${{ inputs.log-path }}" \
+            --captured-versions captured-package-versions.json \
+            --store-run \
+            --branch "${{ inputs.bisect-branch }}"
+
+          # Generate comparison for bisection analysis
+          python $GITHUB_ACTION_PATH/track_packages.py \
+            --packages "${{ inputs.track-packages }}" \
+            --log-path "${{ inputs.log-path }}" \
+            --captured-versions captured-package-versions.json \
+            --generate-comparison \
+            --branch "${{ inputs.bisect-branch }}" \
+            --output-file bisect-comparison.txt
+        else
+          echo "No packages specified for tracking, skipping package tracking"
+        fi
     - name: produce the issue body
       shell: bash -l {0}
       run: |

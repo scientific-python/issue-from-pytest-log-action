@@ -242,6 +242,16 @@ def format_collection_error(error, **formatter_kwargs):
     ).format(py_version=py_version, name=error.name, traceback=error.repr_)
 
 
+def include_bisection_info(message: str, bisect_file: str = "bisect-comparison.txt") -> str:
+    """Include bisection information in the issue message if available."""
+    bisect_path = pathlib.Path(bisect_file)
+    if bisect_path.exists():
+        bisect_content = bisect_path.read_text().strip()
+        if bisect_content:
+            return f"{bisect_content}\n{message}"
+    return message
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("filepath", type=pathlib.Path)
@@ -267,6 +277,9 @@ if __name__ == "__main__":
         message = compressed_report(
             preformatted, max_chars=65535, py_version=py_version
         )
+
+    # Include bisection information if available
+    message = include_bisection_info(message)
 
     output_file = pathlib.Path("pytest-logs.txt")
     print(f"Writing output file to: {output_file.absolute()}")
