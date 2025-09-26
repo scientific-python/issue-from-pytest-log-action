@@ -6,8 +6,8 @@ This script captures package versions using the specified Python command
 to ensure we get versions from the same environment that ran the tests.
 """
 import json
-import sys
 import os
+import sys
 
 
 def main():

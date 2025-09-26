@@ -13,7 +13,6 @@ import subprocess
 import sys
 from datetime import datetime
 
-
 # Package metadata for generating GitHub links
 PACKAGE_METADATA = {
     "numpy": {"github": "numpy/numpy", "type": "releases"},
