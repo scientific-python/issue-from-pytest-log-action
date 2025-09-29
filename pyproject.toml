@@ -1,3 +1,62 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "issue-from-pytest-log-action"
+version = "0.1.0"
+description = "GitHub Action for bisection analysis of pytest failures with package version tracking"
+authors = [{ name = "Ian Hunt-Isaak", email = "ianhuntisaak@gmail.com" }]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.8"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+  "setuptools; python_version >= '3.12'", # For pkg_resources fallback
+  "more-itertools",
+  "pytest",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=6.0",
+  "pytest-cov",
+]
+dev = [
+  "ruff",
+  "mypy",
+  "pre-commit",
+]
+
+[project.scripts]
+capture-versions = "issue_from_pytest_log_action.capture_versions:main"
+simple-bisect = "issue_from_pytest_log_action.simple_bisect:main"
+extract-run-metadata = "issue_from_pytest_log_action.extract_run_metadata:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["issue_from_pytest_log_action*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+markers = [
+  "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
+
 [tool.ruff]
 target-version = "py310"
 builtins = ["ellipsis"]
@@ -42,3 +101,19 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 exclude_lines = ["pragma: no cover", "if TYPE_CHECKING"]
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["src/issue_from_pytest_log_action", "tests"]
+check_untyped_defs = true
+disallow_untyped_defs = false
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+module = ["pytest.*", "more_itertools.*"]
+ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+  "mypy>=1.14.1",
+]

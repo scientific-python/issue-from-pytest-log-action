@@ -23,6 +23,30 @@ inputs:
       have commit rights.
     required: false
     default: ""
+  track-packages:
+    description: >-
+      Comma-separated list of packages to track for bisection (e.g., "xarray,pandas,numpy").
+      Use "all" to track all installed packages. If provided, the action will compare
+      package versions between the last successful run and the current failed run.
+    required: false
+    default: ""
+  bisect-storage-method:
+    description: >-
+      Storage method for bisection data. Either "branch" or "artifact".
+    required: false
+    default: "branch"
+  bisect-branch:
+    description: >-
+      Branch name for storing bisection data when using branch storage method.
+    required: false
+    default: "bisect-data"
+  python-command:
+    description: >-
+      Command to invoke Python in the test environment (e.g., "python", "python3",
+      "conda run python", "uv run python", "poetry run python"). This ensures
+      package versions are captured from the same environment that ran the tests.
+    required: false
+    default: "python"
 outputs: {}
 branding:
   color: "red"
@@ -35,16 +59,107 @@ runs:
     - name: print environment information
       shell: bash -l {0}
       run: |
-        python --version
-        python -m pip list
+        echo "Using Python command: ${{ inputs.python-command }}"
+        ${{ inputs.python-command }} --version
+        ${{ inputs.python-command }} -m pip list
     - name: install dependencies
       shell: bash -l {0}
       run: |
         python -m pip install pytest more-itertools
+        python -m pip install $GITHUB_ACTION_PATH
+    - name: capture package versions from test environment
+      shell: bash -l {0}
+      run: |
+        if [ -n "${{ inputs.track-packages }}" ]; then
+          echo "Capturing package versions using: ${{ inputs.python-command }}"
+          export TRACK_PACKAGES="${{ inputs.track-packages }}"
+          ${{ inputs.python-command }} -m issue_from_pytest_log_action.capture_versions
+        else
+          echo "No packages specified for tracking, skipping package capture"
+        fi
+    - name: store bisection data
+      shell: bash -l {0}
+      run: |
+        if [ -n "${{ inputs.track-packages }}" ]; then
+          echo "Creating bisection data for: ${{ inputs.track-packages }}"
+
+          # Create run data file
+          python -m issue_from_pytest_log_action.simple_bisect \
+            --packages "${{ inputs.track-packages }}" \
+            --log-path "${{ inputs.log-path }}" \
+            --captured-versions captured-package-versions.json \
+            --branch "${{ inputs.bisect-branch }}" \
+            --store-run
+        else
+          echo "No packages specified for tracking, skipping bisection"
+        fi
+
+    - name: setup git for bisection branch
+      if: ${{ inputs.track-packages != '' }}
+      shell: bash -l {0}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: fetch bisection branch
+      if: ${{ inputs.track-packages != '' }}
+      shell: bash -l {0}
+      run: |
+        # Check if branch exists remotely
+        if git ls-remote --heads origin "${{ inputs.bisect-branch }}" | grep -q "${{ inputs.bisect-branch }}"; then
+          echo "Branch ${{ inputs.bisect-branch }} exists, fetching..."
+          git fetch origin "${{ inputs.bisect-branch }}"
+          git checkout -B "${{ inputs.bisect-branch }}" "origin/${{ inputs.bisect-branch }}"
+        else
+          echo "Branch ${{ inputs.bisect-branch }} doesn't exist, creating orphan branch..."
+          git checkout --orphan "${{ inputs.bisect-branch }}"
+          git rm -rf . || true
+        fi
+
+    - name: commit bisection data
+      if: ${{ inputs.track-packages != '' }}
+      shell: bash -l {0}
+      run: |
+        # Add the new run data file
+        git add run_*.json
+
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          TEST_STATUS=$(python -m issue_from_pytest_log_action.extract_run_metadata test_status)
+          FAILED_COUNT=$(python -m issue_from_pytest_log_action.extract_run_metadata failed_count)
+          git commit -m "Add bisection data for run ${{ github.run_id }}
+
+          Test status: ${TEST_STATUS}
+          Failed tests: ${FAILED_COUNT}"
+
+          # Push to remote
+          git push origin "${{ inputs.bisect-branch }}"
+        fi
+
+    - name: generate bisection comparison
+      if: ${{ inputs.track-packages != '' }}
+      shell: bash -l {0}
+      run: |
+        # Generate comparison from historical data in the bisection branch
+        python -m issue_from_pytest_log_action.simple_bisect \
+          --packages "${{ inputs.track-packages }}" \
+          --log-path "${{ inputs.log-path }}" \
+          --captured-versions captured-package-versions.json \
+          --branch "${{ inputs.bisect-branch }}" \
+          --generate-comparison
+
+    - name: return to original branch
+      if: ${{ inputs.track-packages != '' && always() }}
+      shell: bash -l {0}
+      run: |
+        # Return to the original branch
+        git checkout -
     - name: produce the issue body
       shell: bash -l {0}
       run: |
-        python $GITHUB_ACTION_PATH/parse_logs.py ${{ inputs.log-path }}
+        python -m issue_from_pytest_log_action.parse_logs ${{ inputs.log-path }}
     - name: create the issue
       uses: actions/github-script@v7
       with:

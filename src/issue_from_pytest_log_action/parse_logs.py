@@ -1,4 +1,3 @@
-# type: ignore
 import argparse
 import functools
 import json
@@ -63,7 +62,7 @@ class SessionFinish:
 @dataclass
 class PreformattedReport:
     filepath: str
-    name: str
+    name: str | None
     variant: str | None
     message: str
 
@@ -88,7 +87,7 @@ def parse_record(record):
     if cls is None:
         raise ValueError(f"unknown report type: {record['$report_type']}")
 
-    return cls._from_json(record)
+    return cls._from_json(record)  # type: ignore[attr-defined]
 
 
 nodeid_re = re.compile(r"(?P<filepath>.+?)::(?P<name>.+?)(?:\[(?P<variant>.+)\])?")
@@ -114,8 +113,8 @@ def _(report: TestReport):
     if isinstance(report.longrepr, str):
         message = report.longrepr
     else:
-        message = report.longrepr.reprcrash.message
-    return PreformattedReport(message=message, **parsed)
+        message = report.longrepr.reprcrash.message  # type: ignore[union-attr]
+    return PreformattedReport(message=message, **parsed)  # type: ignore[arg-type]
 
 
 @preformat_report.register
@@ -135,8 +134,8 @@ def _(report: CollectReport):
     if isinstance(report.longrepr, str):
         message = report.longrepr.split("\n")[-1].removeprefix("E").lstrip()
     else:
-        message = report.longrepr.reprcrash.message
-    return PreformattedReport(message=message, **parsed)
+        message = report.longrepr.reprcrash.message  # type: ignore[union-attr]
+    return PreformattedReport(message=message, **parsed)  # type: ignore[arg-type]
 
 
 def format_summary(report):
@@ -227,7 +226,7 @@ def compressed_report(reports, max_chars, **formatter_kwargs):
     return summarize(reports, **formatter_kwargs)
 
 
-def format_collection_error(error, **formatter_kwargs):
+def format_collection_error(error, py_version, **formatter_kwargs):
     return textwrap.dedent(
         """\
         <details><summary>Python {py_version} Test Summary</summary>
@@ -242,10 +241,24 @@ def format_collection_error(error, **formatter_kwargs):
     ).format(py_version=py_version, name=error.name, traceback=error.repr_)
 
 
-if __name__ == "__main__":
+def include_bisection_info(message: str, bisect_file: str = "bisect-comparison.txt") -> str:
+    """Include bisection information in the issue message if available."""
+    bisect_path = pathlib.Path(bisect_file)
+    if bisect_path.exists():
+        bisect_content = bisect_path.read_text().strip()
+        if bisect_content:
+            return f"{bisect_content}\n{message}"
+    return message
+
+
+def main(argv=None):
+    """Main entry point for parse_logs module."""
+    if argv is None:
+        argv = sys.argv[1:]
+
     parser = argparse.ArgumentParser()
     parser.add_argument("filepath", type=pathlib.Path)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     py_version = ".".join(str(_) for _ in sys.version_info[:2])
 
@@ -254,9 +267,7 @@ if __name__ == "__main__":
     lines = args.filepath.read_text().splitlines()
     parsed_lines = [json.loads(line) for line in lines]
     reports = [
-        parse_record(data)
-        for data in parsed_lines
-        if data["$report_type"] != "WarningMessage"
+        parse_record(data) for data in parsed_lines if data["$report_type"] != "WarningMessage"
     ]
 
     failed = [report for report in reports if report.outcome == "failed"]
@@ -264,10 +275,15 @@ if __name__ == "__main__":
     if len(preformatted) == 1 and isinstance(preformatted[0], CollectionError):
         message = format_collection_error(preformatted[0], py_version=py_version)
     else:
-        message = compressed_report(
-            preformatted, max_chars=65535, py_version=py_version
-        )
+        message = compressed_report(preformatted, max_chars=65535, py_version=py_version)
+
+    # Include bisection information if available
+    message = include_bisection_info(message)
 
     output_file = pathlib.Path("pytest-logs.txt")
     print(f"Writing output file to: {output_file.absolute()}")
     output_file.write_text(message)
+
+
+if __name__ == "__main__":
+    main()
