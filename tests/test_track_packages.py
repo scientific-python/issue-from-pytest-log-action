@@ -11,7 +11,6 @@ from issue_from_pytest_log_action.track_packages import (
     clean_version_for_tag,
     create_bisect_data,
     extract_failed_tests_from_log,
-    find_last_successful_run_for_tests,
     format_bisect_comparison,
     generate_package_diff_link,
     get_git_info,
@@ -376,6 +375,7 @@ class TestRetrieveLastSuccessfulRun:
     @mock.patch("subprocess.run")
     def test_retrieve_last_successful_run_with_files(self, mock_subprocess):
         """Test finding last successful run with existing files."""
+
         # Mock git operations to succeed
         def mock_run(cmd, *args, **kwargs):
             result = mock.Mock()
@@ -391,18 +391,22 @@ class TestRetrieveLastSuccessfulRun:
                 result.stdout = "run_0.json\nrun_1.json\n"
             elif "show test-branch:run_0.json" in cmd_str:
                 # Return failed run data
-                result.stdout = json.dumps({
-                    "timestamp": "2024-01-01T10:00:00Z",
-                    "test_status": "failed",
-                    "packages": {"numpy": {"version": "1.21.0"}},
-                })
+                result.stdout = json.dumps(
+                    {
+                        "timestamp": "2024-01-01T10:00:00Z",
+                        "test_status": "failed",
+                        "packages": {"numpy": {"version": "1.21.0"}},
+                    }
+                )
             elif "show test-branch:run_1.json" in cmd_str:
                 # Return passed run data
-                result.stdout = json.dumps({
-                    "timestamp": "2024-01-01T09:00:00Z",
-                    "test_status": "passed",
-                    "packages": {"numpy": {"version": "1.20.0"}},
-                })
+                result.stdout = json.dumps(
+                    {
+                        "timestamp": "2024-01-01T09:00:00Z",
+                        "test_status": "passed",
+                        "packages": {"numpy": {"version": "1.20.0"}},
+                    }
+                )
             else:
                 result.stdout = ""
             return result
@@ -500,4 +504,3 @@ class TestFormatBisectComparison:
         assert "test1.py::test_func" in result
         assert "1.20.0" in result
         assert "1.21.0" in result
-

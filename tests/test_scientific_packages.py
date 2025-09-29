@@ -9,8 +9,6 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
-import pytest
-
 from issue_from_pytest_log_action.capture_versions import extract_git_info
 from issue_from_pytest_log_action.track_packages import (
     clean_version_for_tag,
@@ -117,11 +115,11 @@ class TestScientificPackageChanges:
         current = {
             "numpy": {
                 "version": "1.26.0.dev0+1234.g5678abc",
-                "git_info": {"git_revision": "5678abc", "source": "version_string"}
+                "git_info": {"git_revision": "5678abc", "source": "version_string"},
             },
             "pandas": {
                 "version": "2.2.0.dev0+567.gdef123",
-                "git_info": {"git_revision": "def123", "source": "version_string"}
+                "git_info": {"git_revision": "def123", "source": "version_string"},
             },
         }
 
@@ -167,7 +165,7 @@ class TestScientificPackageGitInfo:
         """Test formatting numpy with git revision."""
         package_info = {
             "version": "1.26.0.dev0+1234.g5678abc",
-            "git_info": {"git_revision": "5678abcdef123456789"}
+            "git_info": {"git_revision": "5678abcdef123456789"},
         }
 
         result = format_version_with_git(package_info)
@@ -190,8 +188,13 @@ class TestScientificPackageGitInfo:
         ]
 
         for package, version, expected_hash in test_cases:
-            with mock.patch("issue_from_pytest_log_action.capture_versions.extract_git_info") as mock_extract:
-                mock_extract.return_value = {"git_revision": expected_hash, "source": "version_string"}
+            with mock.patch(
+                "issue_from_pytest_log_action.capture_versions.extract_git_info"
+            ) as mock_extract:
+                mock_extract.return_value = {
+                    "git_revision": expected_hash,
+                    "source": "version_string",
+                }
 
                 git_info = extract_git_info(package)
 
@@ -248,7 +251,7 @@ class TestScientificPackageIntegration:
             # Test basic version diff
             link = generate_package_diff_link(package, "1.0.0", "1.1.0")
             assert link is not None, f"Failed to generate diff link for {package}"
-            assert f"github.com" in link
+            assert "github.com" in link
             assert package in link or package.replace("-", "") in link
 
             # Test with git commit info

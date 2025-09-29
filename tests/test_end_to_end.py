@@ -11,7 +11,6 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from unittest import mock
 
 import pytest
 
@@ -95,22 +94,16 @@ class TestActionWorkflow:
                 "packages": {
                     "numpy": {
                         "version": "1.26.0.dev0+1234.g5678abc",
-                        "git_info": {"git_revision": "5678abc", "source": "version_string"}
+                        "git_info": {"git_revision": "5678abc", "source": "version_string"},
                     },
-                    "pandas": {
-                        "version": "2.2.0rc1",
-                        "git_info": None
-                    },
-                    "xarray": {
-                        "version": "2024.1.0",
-                        "git_info": None
-                    },
+                    "pandas": {"version": "2.2.0rc1", "git_info": None},
+                    "xarray": {"version": "2024.1.0", "git_info": None},
                     "zarr": {
                         "version": "2.16.0.dev0+123.gdef456",
-                        "git_info": {"git_revision": "def456", "source": "version_string"}
+                        "git_info": {"git_revision": "def456", "source": "version_string"},
                     },
                 },
-                "capture_method": "importlib.metadata"
+                "capture_method": "importlib.metadata",
             },
             "stable_versions": {
                 "python_version": "3.11.0",
@@ -120,7 +113,7 @@ class TestActionWorkflow:
                     "pandas": {"version": "2.1.0", "git_info": None},
                     "xarray": {"version": "2023.8.0", "git_info": None},
                 },
-                "capture_method": "importlib.metadata"
+                "capture_method": "importlib.metadata",
             },
         }
 
@@ -137,14 +130,18 @@ class TestActionWorkflow:
 
             # Create realistic test scenario files
             log_file = self.create_realistic_pytest_log(temp_path, "mixed_failures")
-            versions_file = self.create_realistic_package_versions(temp_path, "scientific_stack_update")
+            versions_file = self.create_realistic_package_versions(
+                temp_path, "scientific_stack_update"
+            )
 
             # Simulate running the main workflow commands
             env = os.environ.copy()
-            env.update({
-                "TRACK_PACKAGES": "numpy,pandas,xarray,zarr",
-                "GITHUB_WORKSPACE": str(temp_path),
-            })
+            env.update(
+                {
+                    "TRACK_PACKAGES": "numpy,pandas,xarray,zarr",
+                    "GITHUB_WORKSPACE": str(temp_path),
+                }
+            )
 
             # Change to temp directory for the test
             original_cwd = os.getcwd()
@@ -152,10 +149,17 @@ class TestActionWorkflow:
                 os.chdir(temp_path)
 
                 # Test log parsing step
-                result = subprocess.run([
-                    sys.executable, "-m", "issue_from_pytest_log_action.parse_logs",
-                    str(log_file)
-                ], env=env, capture_output=True, text=True)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "issue_from_pytest_log_action.parse_logs",
+                        str(log_file),
+                    ],
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
 
                 assert result.returncode == 0
                 assert Path("pytest-logs.txt").exists()
@@ -167,14 +171,25 @@ class TestActionWorkflow:
                 assert "AssertionError" in log_content
 
                 # Test bisection data creation
-                result = subprocess.run([
-                    sys.executable, "-m", "issue_from_pytest_log_action.simple_bisect",
-                    "--packages", "numpy,pandas,xarray,zarr",
-                    "--log-path", str(log_file),
-                    "--captured-versions", str(versions_file),
-                    "--branch", "test-bisect-branch",
-                    "--store-run"
-                ], env=env, capture_output=True, text=True)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "issue_from_pytest_log_action.simple_bisect",
+                        "--packages",
+                        "numpy,pandas,xarray,zarr",
+                        "--log-path",
+                        str(log_file),
+                        "--captured-versions",
+                        str(versions_file),
+                        "--branch",
+                        "test-bisect-branch",
+                        "--store-run",
+                    ],
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
 
                 assert result.returncode == 0
 
@@ -186,8 +201,14 @@ class TestActionWorkflow:
                 run_data = json.loads(run_files[0].read_text())
                 assert run_data["test_status"] == "failed"
                 assert len(run_data["failed_tests"]) == 2
-                assert "tests/test_data_processing.py::test_numpy_operations" in run_data["failed_tests"]
-                assert "tests/test_analysis.py::test_pandas_groupby[method-mean]" in run_data["failed_tests"]
+                assert (
+                    "tests/test_data_processing.py::test_numpy_operations"
+                    in run_data["failed_tests"]
+                )
+                assert (
+                    "tests/test_analysis.py::test_pandas_groupby[method-mean]"
+                    in run_data["failed_tests"]
+                )
                 assert "numpy" in run_data["packages"]
                 assert "pandas" in run_data["packages"]
 
@@ -201,9 +222,13 @@ class TestActionWorkflow:
             env["TRACK_PACKAGES"] = "pytest,setuptools"  # Use packages we know exist
 
             # Test package capture
-            result = subprocess.run([
-                sys.executable, "-m", "issue_from_pytest_log_action.capture_versions"
-            ], env=env, cwd=temp_dir, capture_output=True, text=True)
+            result = subprocess.run(
+                [sys.executable, "-m", "issue_from_pytest_log_action.capture_versions"],
+                env=env,
+                cwd=temp_dir,
+                capture_output=True,
+                text=True,
+            )
 
             assert result.returncode == 0
 
@@ -227,7 +252,7 @@ class TestActionWorkflow:
                 "test_status": "failed",
                 "failed_tests": ["test_a.py::test_1", "test_b.py::test_2"],
                 "timestamp": "2024-01-01T10:00:00Z",
-                "packages": {"numpy": {"version": "1.25.0"}}
+                "packages": {"numpy": {"version": "1.25.0"}},
             }
 
             run_file = temp_path / "run_12345.json"
@@ -239,19 +264,31 @@ class TestActionWorkflow:
                 os.chdir(temp_path)
 
                 # Test status extraction
-                result = subprocess.run([
-                    sys.executable, "-m", "issue_from_pytest_log_action.extract_run_metadata",
-                    "test_status"
-                ], capture_output=True, text=True)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "issue_from_pytest_log_action.extract_run_metadata",
+                        "test_status",
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
 
                 assert result.returncode == 0
                 assert result.stdout.strip() == "failed"
 
                 # Test failed count extraction
-                result = subprocess.run([
-                    sys.executable, "-m", "issue_from_pytest_log_action.extract_run_metadata",
-                    "failed_count"
-                ], capture_output=True, text=True)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "issue_from_pytest_log_action.extract_run_metadata",
+                        "failed_count",
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
 
                 assert result.returncode == 0
                 assert result.stdout.strip() == "2"
@@ -266,22 +303,28 @@ class TestActionWorkflow:
 
             # Create passing test scenario
             log_file = self.create_realistic_pytest_log(temp_path, "all_pass")
-            versions_file = self.create_realistic_package_versions(temp_path, "stable_versions")
+            self.create_realistic_package_versions(temp_path, "stable_versions")
 
             original_cwd = os.getcwd()
             try:
                 os.chdir(temp_path)
 
                 # Test log parsing
-                result = subprocess.run([
-                    sys.executable, "-m", "issue_from_pytest_log_action.parse_logs",
-                    str(log_file)
-                ], capture_output=True, text=True)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "issue_from_pytest_log_action.parse_logs",
+                        str(log_file),
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
 
                 assert result.returncode == 0
 
                 # For passing tests, the action should still work but produce different output
-                log_content = Path("pytest-logs.txt").read_text()
+                Path("pytest-logs.txt").read_text()
                 # The exact content will depend on implementation, but it should not crash
 
             finally:
@@ -295,10 +338,16 @@ class TestActionWorkflow:
                 os.chdir(temp_dir)
 
                 # Test with missing log file
-                result = subprocess.run([
-                    sys.executable, "-m", "issue_from_pytest_log_action.parse_logs",
-                    "nonexistent.jsonl"
-                ], capture_output=True, text=True)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "issue_from_pytest_log_action.parse_logs",
+                        "nonexistent.jsonl",
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
 
                 # Should handle missing files gracefully
                 assert result.returncode != 0  # Expected to fail
@@ -307,10 +356,11 @@ class TestActionWorkflow:
                 bad_log = Path("bad.jsonl")
                 bad_log.write_text("invalid json content")
 
-                result = subprocess.run([
-                    sys.executable, "-m", "issue_from_pytest_log_action.parse_logs",
-                    str(bad_log)
-                ], capture_output=True, text=True)
+                result = subprocess.run(
+                    [sys.executable, "-m", "issue_from_pytest_log_action.parse_logs", str(bad_log)],
+                    capture_output=True,
+                    text=True,
+                )
 
                 # Should handle invalid JSON gracefully
                 assert result.returncode != 0  # Expected to fail
@@ -354,11 +404,11 @@ class TestRealisticScenarios:
                 "packages": {
                     "numpy": {
                         "version": "1.26.0.dev0+1598.g1234abc",
-                        "git_info": {"git_revision": "1234abc", "source": "version_string"}
+                        "git_info": {"git_revision": "1234abc", "source": "version_string"},
                     },
                     "pandas": {"version": "2.1.0", "git_info": None},
                 },
-                "capture_method": "importlib.metadata"
+                "capture_method": "importlib.metadata",
             }
 
             versions_file = temp_path / "versions.json"
@@ -370,14 +420,24 @@ class TestRealisticScenarios:
                 os.chdir(temp_path)
 
                 # Test the complete pipeline
-                result = subprocess.run([
-                    sys.executable, "-m", "issue_from_pytest_log_action.simple_bisect",
-                    "--packages", "numpy,pandas",
-                    "--log-path", str(log_file),
-                    "--captured-versions", str(versions_file),
-                    "--branch", "test-nightly-scenario",
-                    "--store-run"
-                ], capture_output=True, text=True)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "issue_from_pytest_log_action.simple_bisect",
+                        "--packages",
+                        "numpy,pandas",
+                        "--log-path",
+                        str(log_file),
+                        "--captured-versions",
+                        str(versions_file),
+                        "--branch",
+                        "test-nightly-scenario",
+                        "--store-run",
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
 
                 assert result.returncode == 0
 
@@ -419,11 +479,15 @@ class TestPerformance:
 
                 # Generate many test results
                 for i in range(1000):
-                    test_result = {
+                    test_result: dict = {
                         "$report_type": "TestReport",
                         "nodeid": f"tests/test_module_{i % 10}.py::test_function_{i}",
                         "outcome": "failed" if i % 50 == 0 else "passed",  # 2% failure rate
-                        "location": (f"tests/test_module_{i % 10}.py", 10 + i % 100, f"test_function_{i}"),
+                        "location": (
+                            f"tests/test_module_{i % 10}.py",
+                            10 + i % 100,
+                            f"test_function_{i}",
+                        ),
                         "keywords": {},
                         "when": "call",
                         "longrepr": f"AssertionError: Test {i} failed" if i % 50 == 0 else None,
@@ -439,10 +503,12 @@ class TestPerformance:
             start_time = time.time()
 
             # Test parsing performance
-            result = subprocess.run([
-                sys.executable, "-m", "issue_from_pytest_log_action.parse_logs",
-                str(log_file)
-            ], cwd=temp_path, capture_output=True, text=True)
+            result = subprocess.run(
+                [sys.executable, "-m", "issue_from_pytest_log_action.parse_logs", str(log_file)],
+                cwd=temp_path,
+                capture_output=True,
+                text=True,
+            )
 
             processing_time = time.time() - start_time
 
@@ -465,9 +531,13 @@ class TestPerformance:
         start_time = time.time()
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            result = subprocess.run([
-                sys.executable, "-m", "issue_from_pytest_log_action.capture_versions"
-            ], env=env, cwd=temp_dir, capture_output=True, text=True)
+            result = subprocess.run(
+                [sys.executable, "-m", "issue_from_pytest_log_action.capture_versions"],
+                env=env,
+                cwd=temp_dir,
+                capture_output=True,
+                text=True,
+            )
 
             processing_time = time.time() - start_time
 
@@ -488,12 +558,8 @@ class TestGitHubActionEnvironment:
 
     def test_environment_variable_handling(self):
         """Test handling of GitHub Actions environment variables."""
-        env_vars = {
-            "GITHUB_WORKSPACE": "/github/workspace",
-            "GITHUB_REPOSITORY": "owner/repo",
-            "GITHUB_RUN_ID": "123456789",
-            "GITHUB_SHA": "abc123def456",
-        }
+        # Test environment variable scenarios
+        # In real usage, these would come from GitHub Actions environment
 
         # These tests would verify that the action handles GitHub environment
         # variables correctly, but we can't easily test this without actual
