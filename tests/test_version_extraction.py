@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from capture_versions import extract_git_info
-from track_packages import (
+from issue_from_pytest_log_action.capture_versions import extract_git_info
+from issue_from_pytest_log_action.track_packages import (
     extract_git_revision,
     extract_version_string,
     format_version_with_git,
@@ -231,12 +231,9 @@ class TestCaptureVersionsIntegration:
             import subprocess
             import sys
 
-            # Use the script directly from the source directory
-            script_path = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)), "capture_versions.py"
-            )
+            # Use the installed package script
             result = subprocess.run(
-                [sys.executable, script_path],
+                [sys.executable, "-m", "issue_from_pytest_log_action.capture_versions"],
                 env=test_env,
                 cwd=tmpdir,
                 capture_output=True,

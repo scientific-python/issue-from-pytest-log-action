@@ -2,3 +2,18 @@
 __pycache__/
 
 /.prettier_cache/
+
+# Python package build artifacts
+*.egg-info/
+dist/
+build/
+*.egg
+
+# UV lock file
+uv.lock
+
+# Temporary test outputs
+captured-package-versions.json
+bisect-comparison.txt
+pytest-logs.txt
+run_*.json

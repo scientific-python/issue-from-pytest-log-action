@@ -39,15 +39,12 @@ dev = [
 ]
 
 [project.scripts]
-capture-versions = "capture_versions:main"
-simple-bisect = "simple_bisect:main"
+capture-versions = "issue_from_pytest_log_action.capture_versions:main"
+simple-bisect = "issue_from_pytest_log_action.simple_bisect:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["capture_versions*", "simple_bisect*", "track_packages*"]
-
-[tool.setuptools]
-py-modules = ["capture_versions", "simple_bisect", "track_packages"]
+where = ["src"]
+include = ["issue_from_pytest_log_action*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

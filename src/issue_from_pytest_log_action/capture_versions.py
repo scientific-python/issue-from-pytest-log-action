@@ -11,6 +11,25 @@ import os
 import sys
 
 
+def extract_git_hash_from_version(version_string: str) -> str | None:
+    """Extract git hash from version string (e.g., '2.1.0.dev0+123.gabc123d')."""
+    import re
+
+    # Common patterns for git hashes in version strings
+    patterns = [
+        r"\.g([a-f0-9]{7,40})",  # .gabc123d or .gabc123def456...
+        r"\+g([a-f0-9]{7,40})",  # +gabc123d
+        r"g([a-f0-9]{7,40})",  # gabc123d (less specific, used last)
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, version_string, re.IGNORECASE)
+        if match:
+            return match.group(1)
+
+    return None
+
+
 def extract_git_info(package_name: str) -> dict:
     """Extract git revision and other VCS info from a package."""
     git_info = {}
@@ -51,8 +70,33 @@ def extract_git_info(package_name: str) -> dict:
         if hasattr(pkg, "version") and hasattr(pkg.version, "full_version"):
             git_info["full_version"] = pkg.version.full_version
 
+        # If we haven't found a git revision yet, try to extract from version string
+        if "git_revision" not in git_info and hasattr(pkg, "__version__"):
+            version_hash = extract_git_hash_from_version(pkg.__version__)
+            if version_hash:
+                git_info["git_revision"] = version_hash
+                git_info["source"] = "version_string"
+
     except (ImportError, AttributeError):
         pass
+
+    # Also try to extract from importlib.metadata if available
+    if not git_info:
+        try:
+            import importlib.metadata as metadata
+
+            dist = metadata.distribution(package_name)
+            version = dist.version
+
+            # Check if the version string contains a git hash
+            version_hash = extract_git_hash_from_version(version)
+            if version_hash:
+                git_info["git_revision"] = version_hash
+                git_info["source"] = "metadata_version"
+                git_info["full_version"] = version
+
+        except Exception:
+            pass
 
     return git_info
 

@@ -10,7 +10,7 @@ import argparse
 import json
 from pathlib import Path
 
-import track_packages
+from issue_from_pytest_log_action import track_packages
 
 
 def create_run_data_file(
