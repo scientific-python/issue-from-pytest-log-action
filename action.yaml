@@ -127,11 +127,12 @@ runs:
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
+          TEST_STATUS=$(python -m issue_from_pytest_log_action.extract_run_metadata test_status)
+          FAILED_COUNT=$(python -m issue_from_pytest_log_action.extract_run_metadata failed_count)
           git commit -m "Add bisection data for run ${{ github.run_id }}
 
-          Test status: $(python -c "import json; data=json.load(open([f for f in __import__('pathlib').Path('.').glob('run_*.json')][-1])); print(data['test_status'])")
-          Failed tests: $(python -c "import json; data=json.load(open([f for f in __import__('pathlib').Path('.').glob('run_*.json')][-1])); print(len(data.get('failed_tests', [])))")
-          "
+          Test status: ${TEST_STATUS}
+          Failed tests: ${FAILED_COUNT}"
 
           # Push to remote
           git push origin "${{ inputs.bisect-branch }}"

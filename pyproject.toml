@@ -41,6 +41,7 @@ dev = [
 [project.scripts]
 capture-versions = "issue_from_pytest_log_action.capture_versions:main"
 simple-bisect = "issue_from_pytest_log_action.simple_bisect:main"
+extract-run-metadata = "issue_from_pytest_log_action.extract_run_metadata:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
