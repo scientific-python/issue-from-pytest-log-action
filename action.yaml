@@ -158,7 +158,7 @@ runs:
     - name: produce the issue body
       shell: bash -l {0}
       run: |
-        python $GITHUB_ACTION_PATH/parse_logs.py ${{ inputs.log-path }}
+        python -m issue_from_pytest_log_action.parse_logs ${{ inputs.log-path }}
     - name: create the issue
       uses: actions/github-script@v7
       with:

@@ -16,52 +16,110 @@ from typing import Any
 
 # Package metadata for generating GitHub links
 PACKAGE_METADATA = {
-    "numpy": {"github": "numpy/numpy", "type": "releases"},
-    "pandas": {"github": "pandas-dev/pandas", "type": "releases"},
-    "matplotlib": {"github": "matplotlib/matplotlib", "type": "releases"},
-    "scipy": {"github": "scipy/scipy", "type": "releases"},
-    "scikit-learn": {"github": "scikit-learn/scikit-learn", "type": "releases"},
-    "requests": {"github": "psf/requests", "type": "releases"},
-    "django": {"github": "django/django", "type": "releases"},
-    "flask": {"github": "pallets/flask", "type": "releases"},
-    "pytest": {"github": "pytest-dev/pytest", "type": "releases"},
-    "hypothesis": {"github": "HypothesisWorks/hypothesis", "type": "releases"},
-    "xarray": {"github": "pydata/xarray", "type": "releases"},
-    "dask": {"github": "dask/dask", "type": "releases"},
-    "jupyterlab": {"github": "jupyterlab/jupyterlab", "type": "releases"},
-    "notebook": {"github": "jupyter/notebook", "type": "releases"},
-    "ipython": {"github": "ipython/ipython", "type": "releases"},
-    "tensorflow": {"github": "tensorflow/tensorflow", "type": "releases"},
-    "torch": {"github": "pytorch/pytorch", "type": "releases"},
-    "fastapi": {"github": "tiangolo/fastapi", "type": "releases"},
-    "pydantic": {"github": "pydantic/pydantic", "type": "releases"},
-    "sqlalchemy": {"github": "sqlalchemy/sqlalchemy", "type": "releases"},
-    "black": {"github": "psf/black", "type": "releases"},
-    "mypy": {"github": "python/mypy", "type": "releases"},
-    "ruff": {"github": "astral-sh/ruff", "type": "releases"},
+    "numpy": {"github": "numpy/numpy", "tag_format": "v{version}"},
+    "pandas": {"github": "pandas-dev/pandas", "tag_format": "v{version}"},
+    "matplotlib": {"github": "matplotlib/matplotlib", "tag_format": "v{version}"},
+    "scipy": {"github": "scipy/scipy", "tag_format": "v{version}"},
+    "scikit-learn": {"github": "scikit-learn/scikit-learn", "tag_format": "{version}"},
+    "requests": {"github": "psf/requests", "tag_format": "v{version}"},
+    "django": {"github": "django/django", "tag_format": "{version}"},
+    "flask": {"github": "pallets/flask", "tag_format": "{version}"},
+    "pytest": {"github": "pytest-dev/pytest", "tag_format": "{version}"},
+    "hypothesis": {
+        "github": "HypothesisWorks/hypothesis",
+        "tag_format": "hypothesis-python-{version}",
+    },
+    "xarray": {"github": "pydata/xarray", "tag_format": "v{version}"},
+    "dask": {"github": "dask/dask", "tag_format": "{version}"},
+    "jupyterlab": {"github": "jupyterlab/jupyterlab", "tag_format": "v{version}"},
+    "notebook": {"github": "jupyter/notebook", "tag_format": "v{version}"},
+    "ipython": {"github": "ipython/ipython", "tag_format": "{version}"},
+    "tensorflow": {"github": "tensorflow/tensorflow", "tag_format": "v{version}"},
+    "torch": {"github": "pytorch/pytorch", "tag_format": "v{version}"},
+    "fastapi": {"github": "tiangolo/fastapi", "tag_format": "{version}"},
+    "pydantic": {"github": "pydantic/pydantic", "tag_format": "v{version}"},
+    "sqlalchemy": {"github": "sqlalchemy/sqlalchemy", "tag_format": "rel_{version}"},
+    "black": {"github": "psf/black", "tag_format": "{version}"},
+    "mypy": {"github": "python/mypy", "tag_format": "v{version}"},
+    "ruff": {"github": "astral-sh/ruff", "tag_format": "{version}"},
 }
 
 
-def generate_package_diff_link(package_name: str, old_version: str, new_version: str) -> str | None:
+def is_git_commit(version_or_commit: str) -> bool:
+    """Check if a string looks like a git commit hash."""
+    import re
+
+    # Git commit hash: 7-40 hex characters
+    return bool(re.match(r"^[a-f0-9]{7,40}$", version_or_commit, re.IGNORECASE))
+
+
+def clean_version_for_tag(version: str) -> str:
+    """Clean version string for tag lookup (remove dev/nightly suffixes)."""
+    import re
+
+    # Remove common development suffixes
+    patterns = [
+        r"\.dev\d*.*",  # .dev0, .dev123+gabc
+        r"\+.*",  # +gabc123d, +123.gabc123d
+        r"\.post\d*.*",  # .post1
+        r"[ab]\d*.*",  # a1, b2, alpha1, beta2
+        r"rc\d*.*",  # rc1, rc2
+        r"\.dirty.*",  # .dirty
+    ]
+
+    clean_version = version
+    for pattern in patterns:
+        clean_version = re.sub(pattern, "", clean_version)
+
+    return clean_version
+
+
+def generate_package_diff_link(
+    package_name: str,
+    old_version: str,
+    new_version: str,
+    old_git_info: dict | None = None,
+    new_git_info: dict | None = None,
+) -> str | None:
     """Generate a GitHub diff link for package version changes."""
     if package_name not in PACKAGE_METADATA:
         return None
 
     metadata = PACKAGE_METADATA[package_name]
     repo = metadata["github"]
+    tag_format = metadata["tag_format"]
 
-    if metadata["type"] == "releases":
-        # Try different tag formats common in Python packages
-        tag_formats = [
-            f"v{old_version}...v{new_version}",  # v1.0.0...v1.1.0
-            f"{old_version}...{new_version}",  # 1.0.0...1.1.0
-            f"release-{old_version}...release-{new_version}",  # release-1.0.0...release-1.1.0
-        ]
+    # Extract git commits if available
+    old_commit = None
+    new_commit = None
 
-        # Return the first format (most common)
-        return f"https://github.com/{repo}/compare/{tag_formats[0]}"
+    if old_git_info and "git_revision" in old_git_info:
+        old_commit = old_git_info["git_revision"]
+    if new_git_info and "git_revision" in new_git_info:
+        new_commit = new_git_info["git_revision"]
 
-    return None
+    # Case 1: Both have git commits - use commit comparison
+    if old_commit and new_commit and old_commit != new_commit:
+        return f"https://github.com/{repo}/compare/{old_commit}...{new_commit}"
+
+    # Case 2: Only one has git commit - can't create meaningful diff
+    if (old_commit and not new_commit) or (new_commit and not old_commit):
+        return None
+
+    # Case 3: No git commits, use version tags
+    # Clean versions for tag comparison
+    clean_old = clean_version_for_tag(old_version)
+    clean_new = clean_version_for_tag(new_version)
+
+    # Skip if versions are the same after cleaning (likely just different git commits)
+    if clean_old == clean_new:
+        return None
+
+    # Generate tags using the package's tag format
+    old_tag = tag_format.format(version=clean_old)
+    new_tag = tag_format.format(version=clean_new)
+
+    return f"https://github.com/{repo}/compare/{old_tag}...{new_tag}"
 
 
 def get_all_installed_packages() -> dict[str, str | None]:
@@ -493,6 +551,13 @@ def extract_version_string(package_info: dict | str | None) -> str | None:
     return None
 
 
+def extract_git_revision_dict(package_info: dict | str | None) -> dict | None:
+    """Extract git info dict from package info if available."""
+    if isinstance(package_info, dict) and "git_info" in package_info:
+        return package_info["git_info"]
+    return None
+
+
 def extract_git_revision(package_info: dict | str | None) -> str | None:
     """Extract git revision from package info if available."""
     if isinstance(package_info, dict) and "git_info" in package_info:
@@ -544,16 +609,34 @@ def get_package_changes(current_packages: dict, previous_packages: dict) -> list
 
             # Try to generate a GitHub diff link for version changes
             if current_version != previous_version:
-                diff_link = generate_package_diff_link(package, previous_version, current_version)
+                # Extract git info for link generation
+                old_git_info = extract_git_revision_dict(previous_info)
+                new_git_info = extract_git_revision_dict(current_info)
+
+                diff_link = generate_package_diff_link(
+                    package, previous_version, current_version, old_git_info, new_git_info
+                )
                 if diff_link:
                     changes.append(f"- [{package}: {prev_display} → {curr_display}]({diff_link})")
                 else:
                     changes.append(f"- {package}: {prev_display} → {curr_display}")
             else:
                 # Only git revision changed (nightly build case)
-                changes.append(
-                    f"- {package}: {prev_display} → {curr_display} (git revision changed)"
+                # Try to generate commit comparison link
+                old_git_info = extract_git_revision_dict(previous_info)
+                new_git_info = extract_git_revision_dict(current_info)
+
+                diff_link = generate_package_diff_link(
+                    package, previous_version, current_version, old_git_info, new_git_info
                 )
+                if diff_link:
+                    changes.append(
+                        f"- [{package}: {prev_display} → {curr_display} (git revision changed)]({diff_link})"
+                    )
+                else:
+                    changes.append(
+                        f"- {package}: {prev_display} → {curr_display} (git revision changed)"
+                    )
 
     return changes
 
