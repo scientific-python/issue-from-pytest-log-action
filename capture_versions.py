@@ -11,6 +11,52 @@ import os
 import sys
 
 
+def extract_git_info(package_name: str) -> dict:
+    """Extract git revision and other VCS info from a package."""
+    git_info = {}
+
+    try:
+        import importlib
+
+        # Try to import the package to check for version attributes
+        pkg = importlib.import_module(package_name.replace("-", "_"))
+
+        # Check for git revision in various locations
+        revision_attrs = [
+            "__git_revision__",
+            "version.git_revision",
+            "_version.get_versions",
+            "__version_info__.git_revision",
+        ]
+
+        for attr_path in revision_attrs:
+            try:
+                obj = pkg
+                for part in attr_path.split("."):
+                    obj = getattr(obj, part)
+
+                if callable(obj):
+                    result = obj()
+                    if isinstance(result, dict):
+                        git_info.update(result)
+                    else:
+                        git_info["git_revision"] = str(result)
+                else:
+                    git_info["git_revision"] = str(obj)
+                break
+            except AttributeError:
+                continue
+
+        # Check for full version info
+        if hasattr(pkg, "version") and hasattr(pkg.version, "full_version"):
+            git_info["full_version"] = pkg.version.full_version
+
+    except (ImportError, AttributeError):
+        pass
+
+    return git_info
+
+
 def main():
     """Main function to capture package versions."""
     packages_input = os.environ.get("TRACK_PACKAGES", "").strip()
@@ -28,14 +74,23 @@ def main():
         if len(packages) == 1 and packages[0].lower() == "all":
             print("Capturing all installed packages...")
             for dist in metadata.distributions():
-                versions[dist.name] = dist.version
+                pkg_info = {"version": dist.version, "git_info": extract_git_info(dist.name)}
+                versions[dist.name] = pkg_info
         else:
             print(f"Capturing specific packages: {packages}")
             for pkg in packages:
                 if pkg:
                     try:
-                        versions[pkg] = metadata.version(pkg)
-                        print(f"  {pkg}: {versions[pkg]}")
+                        pkg_version = metadata.version(pkg)
+                        git_info = extract_git_info(pkg)
+
+                        pkg_info = {"version": pkg_version, "git_info": git_info}
+                        versions[pkg] = pkg_info
+
+                        print(f"  {pkg}: {pkg_version}")
+                        if git_info:
+                            for key, value in git_info.items():
+                                print(f"    {key}: {value}")
                     except Exception as e:
                         versions[pkg] = None
                         print(f"  {pkg}: not found ({e})")
@@ -43,19 +98,31 @@ def main():
         print("importlib.metadata not available, trying pkg_resources...")
         # Fallback to pkg_resources
         try:
-            import pkg_resources  # type: ignore[import-untyped]
+            import pkg_resources  # type: ignore[import-not-found]
 
             if len(packages) == 1 and packages[0].lower() == "all":
                 print("Capturing all installed packages...")
                 for dist in pkg_resources.working_set:
-                    versions[dist.project_name] = dist.version
+                    pkg_info = {
+                        "version": dist.version,
+                        "git_info": extract_git_info(dist.project_name),
+                    }
+                    versions[dist.project_name] = pkg_info
             else:
                 print(f"Capturing specific packages: {packages}")
                 for pkg in packages:
                     if pkg:
                         try:
-                            versions[pkg] = pkg_resources.get_distribution(pkg).version
-                            print(f"  {pkg}: {versions[pkg]}")
+                            pkg_version = pkg_resources.get_distribution(pkg).version
+                            git_info = extract_git_info(pkg)
+
+                            pkg_info = {"version": pkg_version, "git_info": git_info}
+                            versions[pkg] = pkg_info
+
+                            print(f"  {pkg}: {pkg_version}")
+                            if git_info:
+                                for key, value in git_info.items():
+                                    print(f"    {key}: {value}")
                         except Exception as e:
                             versions[pkg] = None
                             print(f"  {pkg}: not found ({e})")

@@ -12,6 +12,7 @@ import pathlib
 import subprocess
 import sys
 from datetime import datetime
+from typing import Any
 
 # Package metadata for generating GitHub links
 PACKAGE_METADATA = {
@@ -97,8 +98,8 @@ def get_package_version(package_name: str) -> str | None:
 
 def get_current_package_versions(
     packages: list[str], captured_versions_file: str | None = None
-) -> dict[str, str | None]:
-    """Get current versions of specified packages."""
+) -> dict[str, Any]:
+    """Get current versions of specified packages with git info if available."""
     # First try to read from captured versions file if provided
     if captured_versions_file and os.path.exists(captured_versions_file):
         try:
@@ -118,7 +119,7 @@ def get_current_package_versions(
             print(f"Warning: Could not read captured versions file {captured_versions_file}: {e}")
             print("Falling back to direct package detection...")
 
-    # Fallback to direct detection (original behavior)
+    # Fallback to direct detection (original behavior) - returns simple version strings
     if len(packages) == 1 and packages[0].lower() == "all":
         return get_all_installed_packages()
 
@@ -481,30 +482,78 @@ def find_last_successful_run_for_tests(
     return test_last_success
 
 
+def extract_version_string(package_info: dict | str | None) -> str | None:
+    """Extract version string from package info (handles both old and new formats)."""
+    if package_info is None:
+        return None
+    if isinstance(package_info, str):
+        return package_info
+    if isinstance(package_info, dict):
+        return package_info.get("version")
+    return None
+
+
+def extract_git_revision(package_info: dict | str | None) -> str | None:
+    """Extract git revision from package info if available."""
+    if isinstance(package_info, dict) and "git_info" in package_info:
+        git_info = package_info["git_info"]
+        return git_info.get("git_revision")
+    return None
+
+
+def format_version_with_git(package_info: dict | str | None) -> str:
+    """Format version string with git revision if available."""
+    version = extract_version_string(package_info)
+    if version is None:
+        return "(missing)"
+
+    git_revision = extract_git_revision(package_info)
+    if git_revision:
+        # Show first 8 characters of git hash
+        short_hash = git_revision[:8]
+        return f"{version} ({short_hash})"
+    return version
+
+
 def get_package_changes(current_packages: dict, previous_packages: dict) -> list[str]:
     """Get list of package changes between two runs."""
     changes = []
     all_packages = set(current_packages.keys()) | set(previous_packages.keys())
 
     for package in sorted(all_packages):
-        current_version = current_packages.get(package)
-        previous_version = previous_packages.get(package)
+        current_info = current_packages.get(package)
+        previous_info = previous_packages.get(package)
+
+        current_version = extract_version_string(current_info)
+        previous_version = extract_version_string(previous_info)
 
         if current_version is None and previous_version is None:
             continue
         elif current_version is None:
-            changes.append(f"- {package}: {previous_version} → (removed)")
+            prev_display = format_version_with_git(previous_info)
+            changes.append(f"- {package}: {prev_display} → (removed)")
         elif previous_version is None:
-            changes.append(f"- {package}: (new) → {current_version}")
-        elif current_version != previous_version:
-            # Try to generate a GitHub diff link
-            diff_link = generate_package_diff_link(package, previous_version, current_version)
-            if diff_link:
-                changes.append(
-                    f"- [{package}: {previous_version} → {current_version}]({diff_link})"
-                )
+            curr_display = format_version_with_git(current_info)
+            changes.append(f"- {package}: (new) → {curr_display}")
+        elif current_version != previous_version or extract_git_revision(
+            current_info
+        ) != extract_git_revision(previous_info):
+            # Version changed OR git revision changed
+            prev_display = format_version_with_git(previous_info)
+            curr_display = format_version_with_git(current_info)
+
+            # Try to generate a GitHub diff link for version changes
+            if current_version != previous_version:
+                diff_link = generate_package_diff_link(package, previous_version, current_version)
+                if diff_link:
+                    changes.append(f"- [{package}: {prev_display} → {curr_display}]({diff_link})")
+                else:
+                    changes.append(f"- {package}: {prev_display} → {curr_display}")
             else:
-                changes.append(f"- {package}: {previous_version} → {current_version}")
+                # Only git revision changed (nightly build case)
+                changes.append(
+                    f"- {package}: {prev_display} → {curr_display} (git revision changed)"
+                )
 
     return changes
 
