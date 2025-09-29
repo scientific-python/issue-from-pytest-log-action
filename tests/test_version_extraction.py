@@ -201,7 +201,7 @@ class TestPackageChanges:
     def test_package_changes_new_package(self):
         """Test detecting new packages."""
         current = {"pandas": "1.5.0"}
-        previous = {}
+        previous: dict[str, str] = {}
 
         changes = get_package_changes(current, previous)
 
@@ -210,7 +210,7 @@ class TestPackageChanges:
 
     def test_package_changes_removed_package(self):
         """Test detecting removed packages."""
-        current = {}
+        current: dict[str, str] = {}
         previous = {"pandas": "1.4.0"}
 
         changes = get_package_changes(current, previous)

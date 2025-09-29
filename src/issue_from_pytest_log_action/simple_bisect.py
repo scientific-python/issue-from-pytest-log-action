@@ -85,7 +85,7 @@ def generate_comparison(
         print("No comparison generated (no failed tests)")
 
 
-def main():
+def main(argv=None):
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Handle bisection data")
     parser.add_argument("--packages", required=True, help="Comma-separated list of packages")
@@ -99,7 +99,7 @@ def main():
         "--generate-comparison", action="store_true", help="Generate bisection comparison"
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     packages = [pkg.strip() for pkg in args.packages.split(",") if pkg.strip()]
 

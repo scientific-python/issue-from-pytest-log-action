@@ -68,10 +68,13 @@ def main(argv=None):
         data = load_run_data(run_file)
 
         # Extract the requested field
+        result: str | int
         if args.field == "test_status":
             result = extract_test_status(data)
         elif args.field == "failed_count":
             result = extract_failed_test_count(data)
+        else:
+            raise ValueError(f"Unknown field: {args.field}")
 
         print(result)
 

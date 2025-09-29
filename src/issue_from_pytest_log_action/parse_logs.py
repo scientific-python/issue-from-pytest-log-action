@@ -1,4 +1,3 @@
-# type: ignore
 import argparse
 import functools
 import json
@@ -63,7 +62,7 @@ class SessionFinish:
 @dataclass
 class PreformattedReport:
     filepath: str
-    name: str
+    name: str | None
     variant: str | None
     message: str
 
@@ -88,7 +87,7 @@ def parse_record(record):
     if cls is None:
         raise ValueError(f"unknown report type: {record['$report_type']}")
 
-    return cls._from_json(record)
+    return cls._from_json(record)  # type: ignore[attr-defined]
 
 
 nodeid_re = re.compile(r"(?P<filepath>.+?)::(?P<name>.+?)(?:\[(?P<variant>.+)\])?")
@@ -114,8 +113,8 @@ def _(report: TestReport):
     if isinstance(report.longrepr, str):
         message = report.longrepr
     else:
-        message = report.longrepr.reprcrash.message
-    return PreformattedReport(message=message, **parsed)
+        message = report.longrepr.reprcrash.message  # type: ignore[union-attr]
+    return PreformattedReport(message=message, **parsed)  # type: ignore[arg-type]
 
 
 @preformat_report.register
@@ -135,8 +134,8 @@ def _(report: CollectReport):
     if isinstance(report.longrepr, str):
         message = report.longrepr.split("\n")[-1].removeprefix("E").lstrip()
     else:
-        message = report.longrepr.reprcrash.message
-    return PreformattedReport(message=message, **parsed)
+        message = report.longrepr.reprcrash.message  # type: ignore[union-attr]
+    return PreformattedReport(message=message, **parsed)  # type: ignore[arg-type]
 
 
 def format_summary(report):

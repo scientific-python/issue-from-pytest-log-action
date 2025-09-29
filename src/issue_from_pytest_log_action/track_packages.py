@@ -11,7 +11,7 @@ import os
 import pathlib
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 # Package metadata for generating GitHub links
@@ -30,6 +30,7 @@ PACKAGE_METADATA = {
         "tag_format": "hypothesis-python-{version}",
     },
     "xarray": {"github": "pydata/xarray", "tag_format": "v{version}"},
+    "zarr": {"github": "zarr-developers/zarr-python", "tag_format": "v{version}"},
     "dask": {"github": "dask/dask", "tag_format": "{version}"},
     "jupyterlab": {"github": "jupyterlab/jupyterlab", "tag_format": "v{version}"},
     "notebook": {"github": "jupyter/notebook", "tag_format": "v{version}"},
@@ -54,22 +55,30 @@ def is_git_commit(version_or_commit: str) -> bool:
 
 
 def clean_version_for_tag(version: str) -> str:
-    """Clean version string for tag lookup (remove dev/nightly suffixes)."""
+    """Clean version string for tag lookup (remove dev/nightly suffixes but preserve rc/alpha)."""
     import re
 
-    # Remove common development suffixes
+    # First preserve rc/alpha parts by marking them
+    # Replace rc and alpha with placeholder markers to preserve them
+    preserved_version = version
+    preserved_version = re.sub(r"(rc\d+)", r"__RC__\1__RC__", preserved_version)
+    preserved_version = re.sub(r"([ab]\d+)", r"__ALPHA__\1__ALPHA__", preserved_version)
+
+    # Remove development suffixes (but not rc/alpha which are now marked)
     patterns = [
         r"\.dev\d*.*",  # .dev0, .dev123+gabc
         r"\+.*",  # +gabc123d, +123.gabc123d
         r"\.post\d*.*",  # .post1
-        r"[ab]\d*.*",  # a1, b2, alpha1, beta2
-        r"rc\d*.*",  # rc1, rc2
         r"\.dirty.*",  # .dirty
     ]
 
-    clean_version = version
+    clean_version = preserved_version
     for pattern in patterns:
         clean_version = re.sub(pattern, "", clean_version)
+
+    # Restore the preserved rc/alpha parts
+    clean_version = re.sub(r"__RC__(rc\d+)__RC__", r"\1", clean_version)
+    clean_version = re.sub(r"__ALPHA__([ab]\d+)__ALPHA__", r"\1", clean_version)
 
     return clean_version
 
@@ -116,6 +125,11 @@ def generate_package_diff_link(
         return None
 
     # Generate tags using the package's tag format
+    # Special handling for packages that use underscores instead of dots
+    if package_name == "sqlalchemy":
+        clean_old = clean_old.replace(".", "_")
+        clean_new = clean_new.replace(".", "_")
+
     old_tag = tag_format.format(version=clean_old)
     new_tag = tag_format.format(version=clean_new)
 
@@ -293,7 +307,7 @@ def create_bisect_data(
 
     return {
         "workflow_run_id": workflow_run_id,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "python_version": python_version,
         "packages": package_versions,
         "failed_tests": failed_tests,
@@ -562,7 +576,8 @@ def extract_git_revision(package_info: dict | str | None) -> str | None:
     """Extract git revision from package info if available."""
     if isinstance(package_info, dict) and "git_info" in package_info:
         git_info = package_info["git_info"]
-        return git_info.get("git_revision")
+        if git_info is not None:
+            return git_info.get("git_revision")
     return None
 
 

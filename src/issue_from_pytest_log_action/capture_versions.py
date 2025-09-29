@@ -9,6 +9,7 @@ to ensure we get versions from the same environment that ran the tests.
 import json
 import os
 import sys
+from typing import Any
 
 
 def extract_git_hash_from_version(version_string: str) -> str | None:
@@ -109,7 +110,7 @@ def main():
         return
 
     packages = [pkg.strip() for pkg in packages_input.split(",")]
-    versions = {}
+    versions: dict[str, dict[str, Any] | None | str] = {}
 
     # Try importlib.metadata first (Python 3.8+)
     try:
@@ -146,12 +147,12 @@ def main():
 
             if len(packages) == 1 and packages[0].lower() == "all":
                 print("Capturing all installed packages...")
-                for dist in pkg_resources.working_set:
+                for dist in pkg_resources.working_set:  # type: ignore[attr-defined]
                     pkg_info = {
                         "version": dist.version,
-                        "git_info": extract_git_info(dist.project_name),
+                        "git_info": extract_git_info(dist.project_name),  # type: ignore[attr-defined]
                     }
-                    versions[dist.project_name] = pkg_info
+                    versions[dist.project_name] = pkg_info  # type: ignore[attr-defined]
             else:
                 print(f"Capturing specific packages: {packages}")
                 for pkg in packages:
@@ -172,7 +173,7 @@ def main():
                             print(f"  {pkg}: not found ({e})")
         except ImportError:
             print("ERROR: No package detection method available")
-            versions = {"error": "No package detection method available"}
+            versions["error"] = "No package detection method available"
 
     # Save captured versions
     capture_data = {
