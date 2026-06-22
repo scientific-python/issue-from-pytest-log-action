@@ -37,10 +37,14 @@ runs:
         python-version: "3.13"
     - name: setup the environment
       shell: bash
+      env:
+        UV_PROJECT: ${{ github.action_path }}
       run: |
         uv sync
     - name: produce the issue body
       shell: bash
+      env:
+        UV_PROJECT: ${{ github.action_path }}
       run: |
         uv run --frozen python $GITHUB_ACTION_PATH/parse_logs.py ${{ inputs.log-path }}
     - name: create the issue
