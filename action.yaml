@@ -30,7 +30,6 @@ branding:
 
 runs:
   using: composite
-  # TODO: learn enough javascript / node.js to write the reportlog parsing
   steps:
     - name: setup uv
       uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # 8.2.0
