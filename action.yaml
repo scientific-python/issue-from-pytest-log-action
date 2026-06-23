@@ -30,7 +30,6 @@ branding:
 
 runs:
   using: composite
-  # TODO: learn enough javascript / node.js to write the reportlog parsing
   steps:
     - name: print environment information
       shell: bash -l {0}
