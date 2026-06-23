@@ -1,3 +1,14 @@
+#!/usr/bin/env python
+# /// script
+# dependencies = [
+#     "pytest",
+#     "more-itertools",
+# ]
+# requires-python = ">=3.12"
+#
+# [tool.uv]
+# exclude-newer = "1 week"
+# ///
 # type: ignore
 import argparse
 import functools
