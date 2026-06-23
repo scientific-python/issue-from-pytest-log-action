@@ -51,7 +51,10 @@ runs:
         WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         LOG_PATH: ${{ inputs.log-path }}
       run: |
-        (echo "[Workflow Run URL]($WORKFLOW_URL)"; cat $LOG_PATH) >> $GITHUB_ACTIONS_PATH/issue_body.md
+        (
+          echo "[Workflow Run URL]($WORKFLOW_URL)";
+          cat $LOG_PATH;
+        ) >> $GITHUB_ACTIONS_PATH/issue_body.md
     - name: create the issue
       shell: bash
       env:
