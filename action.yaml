@@ -36,6 +36,7 @@ runs:
       with:
         python-version: "3.13"
         working-directory: ${{ github.action_path }}
+        activate-environment: "true"
     - name: produce the issue body
       shell: bash
       env:
