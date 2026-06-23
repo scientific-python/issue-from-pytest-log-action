@@ -35,12 +35,7 @@ runs:
       uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # 8.2.0
       with:
         python-version: "3.13"
-    - name: setup the environment
-      shell: bash
-      env:
-        UV_PROJECT: ${{ github.action_path }}
-      run: |
-        uv sync
+        working-directory: ${{ github.action_path }}
     - name: produce the issue body
       shell: bash
       env:
