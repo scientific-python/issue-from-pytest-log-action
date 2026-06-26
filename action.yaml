@@ -82,6 +82,6 @@ runs:
             gh issue new \
               --assignee "$ASSIGNEES" \
               --label "$ISSUE_LABEL" \
-              --title "$ISUE_TITLE" \
+              --title "$ISSUE_TITLE" \
               --body-file $GITHUB_ACTION_PATH/issue_body.md
         fi
