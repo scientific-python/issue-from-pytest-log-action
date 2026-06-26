@@ -76,12 +76,12 @@ runs:
         if [[ $(echo "$issues" | jq 'length') -eq 1 ]]; then
             gh issue edit \
               "$(echo "$issues" | jq '.[] | .number')" \
-              --body-file $GITHUB_ACTIONS_PATH/issue_body.md
+              --body-file $GITHUB_ACTION_PATH/issue_body.md
         else
             # TODO: figure out if we need to remove `--assignee` if that's empty
             gh issue new \
               --assignee "$ASSIGNEES" \
               --label "$ISSUE_LABEL" \
               --title "$ISUE_TITLE" \
-              --body-file $GITHUB_ACTIONS_PATH/issue_body.md
+              --body-file $GITHUB_ACTION_PATH/issue_body.md
         fi
