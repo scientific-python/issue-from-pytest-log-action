@@ -59,7 +59,7 @@ runs:
         # log the contents
         echo "::group::issue-body"
         cat $GITHUB_ACTION_PATH/issue_body.md
-        echo "::endgroup"
+        echo "::endgroup::"
 
     - name: create the issue
       shell: bash
