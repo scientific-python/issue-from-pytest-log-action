@@ -50,14 +50,17 @@ runs:
         WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         LOG_PATH: pytest-logs.txt
       run: |
+        # format the issue body
         (
           echo "[Workflow Run URL]($WORKFLOW_URL)";
           cat $LOG_PATH;
         ) > $GITHUB_ACTION_PATH/issue_body.md
 
-        echo "--- start body"
+        # log the contents
+        echo "::group::issue-body"
         cat $GITHUB_ACTION_PATH/issue_body.md
-        echo "--- end body"
+        echo "::endgroup"
+
     - name: create the issue
       shell: bash
       env:
