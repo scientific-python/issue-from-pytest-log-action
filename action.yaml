@@ -53,7 +53,7 @@ runs:
         (
           echo "[Workflow Run URL]($WORKFLOW_URL)";
           cat $LOG_PATH;
-        ) >> $GITHUB_ACTIONS_PATH/issue_body.md
+        ) >> $GITHUB_ACTION_PATH/issue_body.md
     - name: create the issue
       shell: bash
       env:
