@@ -54,6 +54,10 @@ runs:
           echo "[Workflow Run URL]($WORKFLOW_URL)";
           cat $LOG_PATH;
         ) >> $GITHUB_ACTION_PATH/issue_body.md
+
+        echo "--- start body"
+        cat $GITHUB_ACTION_PATH/issue_body.md
+        echo "--- end body"
     - name: create the issue
       shell: bash
       env:
