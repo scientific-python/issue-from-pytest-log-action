@@ -41,61 +41,53 @@ runs:
       shell: bash
       env:
         UV_PROJECT: ${{ github.action_path }}
+        LOG_PATH: ${{ inputs.log-path }}
       run: |
-        uv run --frozen $GITHUB_ACTION_PATH/parse_logs.py ${{ inputs.log-path }}
+        uv run --frozen $GITHUB_ACTION_PATH/parse_logs.py $LOG_PATH
+    - name: construct the issue body
+      shell: bash
+      env:
+        WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        LOG_PATH: pytest-logs.txt
+      run: |
+        # format the issue body
+        (
+          echo "[Workflow Run URL]($WORKFLOW_URL)";
+          cat $LOG_PATH;
+        ) > $GITHUB_ACTION_PATH/issue_body.md
+
+        # log the contents
+        echo "::group::issue-body"
+        cat $GITHUB_ACTION_PATH/issue_body.md
+        echo "::endgroup::"
+
     - name: create the issue
-      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-      with:
-        github-token: ${{ github.token }}
-        script: |
-          const fs = require('fs');
-          const pytest_logs = fs.readFileSync('pytest-logs.txt', 'utf8');
-          const assignees = "${{inputs.assignees}}".split(",");
-          const workflow_url = `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
-          const issue_body = `[Workflow Run URL](${workflow_url})\n${pytest_logs}`;
+      shell: bash
+      env:
+        ASSIGNEES: ${{ inputs.assignees }}
+        ISSUE_TITLE: ${{ inputs.issue-title }}
+        ISSUE_LABEL: ${{ inputs.issue-label }}
+        CREATOR: "app/github-actions"
+        REPO: ${{ github.repository }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        issues=$(
+          gh issue list \
+            -S "in:title $ISSUE_TITLE" \
+            --state open \
+            --author $CREATOR \
+            --json number,title,author,assignees \
+            -L 1
+        );
 
-          const variables = {
-            owner: context.repo.owner,
-            name: context.repo.repo,
-            label: "${{ inputs.issue-label }}",
-            creator: "app/github-actions",
-            title: "${{ inputs.issue-title }}"
-          };
-          const query_string = `repo:${variables.owner}/${variables.name} author:${variables.creator} label:${variables.label} is:open in:title ${variables.title}`;
-
-          // Run GraphQL query against GitHub API to find the most recent open issue used for reporting failures
-          const query = `query {
-            search(query: "${query_string}", type:ISSUE, first: 1) {
-              edges {
-                node {
-                  ... on Issue {
-                    body
-                    id
-                    number
-                  }
-                }
-              }
-            }
-          }`;
-
-          const result = await github.graphql(query);
-
-          // If no issue is open, create a new issue,
-          // else update the body of the existing issue.
-          if (result.search.edges.length === 0) {
-            github.rest.issues.create({
-              owner: variables.owner,
-              repo: variables.name,
-              body: issue_body,
-              title: variables.title,
-              labels: [variables.label],
-              assignees: assignees
-            });
-          } else {
-            github.rest.issues.update({
-              owner: variables.owner,
-              repo: variables.name,
-              issue_number: result.search.edges[0].node.number,
-              body: issue_body
-            });
-          }
+        if [[ $(echo "$issues" | jq 'length') -eq 1 ]]; then
+            gh issue edit \
+              "$(echo "$issues" | jq '.[] | .number')" \
+              --body-file $GITHUB_ACTION_PATH/issue_body.md
+        else
+            gh issue new \
+              --assignee "$ASSIGNEES" \
+              --label "$ISSUE_LABEL" \
+              --title "$ISSUE_TITLE" \
+              --body-file $GITHUB_ACTION_PATH/issue_body.md
+        fi
