@@ -48,7 +48,7 @@ runs:
       shell: bash
       env:
         WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        LOG_PATH: ${{ inputs.log-path }}
+        LOG_PATH: pytest-logs.txt
       run: |
         (
           echo "[Workflow Run URL]($WORKFLOW_URL)";
