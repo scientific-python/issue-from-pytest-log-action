@@ -54,11 +54,6 @@ runs:
         LOG_PATH: ${{ inputs.log-path }}
         ISSUE_BODY: ${{ github.action_path }}/issue-body.md
       run: |
-        # raw log file
-        echo "::group::reportlog file"
-        cat $LOG_PATH | jq
-        echo "::endgroup::"
-
         # issue body
         echo "::group::issue body"
         cat "$ISSUE_BODY"
