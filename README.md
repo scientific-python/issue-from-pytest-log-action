@@ -91,8 +91,8 @@ Use `log-path` to specify where the output of `pytest-reportlog` is.
 
 > [!NOTE]
 > If the log file is missing (for example, because the workflow failed before `pytest` was
-> run), the action will still open / update, but the issue will contain no details about
-> the exact failure.
+> run), the action will still open / update, but the issue won't contain details about the
+> exact failure.
 
 ### issue title
 
