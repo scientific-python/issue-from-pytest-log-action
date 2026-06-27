@@ -56,8 +56,7 @@ runs:
       run: |
         # raw log file
         echo "::group::reportlog file"
-        cat $LOG_PATH
-        jq -M "$LOG_PATH"
+        cat $LOG_PATH | jq
         echo "::endgroup::"
 
         # issue body
