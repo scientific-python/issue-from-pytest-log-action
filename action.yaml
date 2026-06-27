@@ -48,7 +48,7 @@ runs:
         ISSUE_BODY: ${{ github.action_path }}/issue-body.md
       run: |
         python $GITHUB_ACTION_PATH/parse_logs.py "$LOG_PATH" "$WORKFLOW_URL" "$ISSUE_BODY"
-    - name: inspect the issue body
+    - name: inspect the results
       shell: bash
       env:
         LOG_PATH: ${{ inputs.log-path }}
