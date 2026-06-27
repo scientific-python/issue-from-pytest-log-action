@@ -18,15 +18,14 @@ To use the `issue-from-pytest-log` action in workflows, simply add a new step:
 > The action won't run properly unless the `issues: write` permission is requested as shown below.
 
 ```yaml
+permissions: {}
+
 jobs:
   my-job:
     ...
     strategy:
       fail-fast: false
       ...
-
-    permissions:
-      issues: write
 
     ...
 
@@ -45,15 +44,35 @@ jobs:
     - run: |
         pytest --report-log pytest-log.jsonl
 
-    ...
+    - uses: actions/upload-artifact@...
+      with:
+        name: log file
+        path: pytest-log-jsonl
+
+  create-issue:
+    needs: my-job
+    runs-on: ubuntu-latest
+
+    permissions:
+      issues: write
+
+    steps:
+    - uses: actions/download-artifact@...
+      with:
+        name: log file
+        path: logs/
 
     - uses: scientific-python/issue-from-pytest-log-action@f94477e45ef40e4403d7585ba639a9a3bcc53d43  # v1.3.0
       if: |
         failure()
         && ...
       with:
-        log-path: pytest-log.jsonl
+        log-path: logs/pytest-log.jsonl
 ```
+
+> [!TIP]
+> The above shows how to split the execution of tests from a task with elevated permissions (opening
+> / updating an issue). This is good practice to reduce the risks of supply-chain attacks.
 
 See [this repository](https://github.com/keewis/reportlog-test/issues) for example issues. For more realistic examples, see
 
