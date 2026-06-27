@@ -280,7 +280,13 @@ if __name__ == "__main__":
             """\
             Something went wrong.
 
-            However, the log file does not exist so there are no additional details.
+            However, the log file at
+
+            ```
+            {path}
+            ```
+
+            does not exist so there are no additional details.
             """,
         )
     else:
