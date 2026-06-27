@@ -279,7 +279,7 @@ if __name__ == "__main__":
         lines = path.read_text().splitlines()
     except FileNotFoundError:
         message = textwrap.dedent(
-            """\
+            f"""\
             Something went wrong.
 
             However, the log file at
