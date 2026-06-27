@@ -4,7 +4,7 @@ import sys
 import hypothesis.strategies as st
 from hypothesis import given, note
 
-import parse_logs
+import format_issue_body
 
 directory_re = r"(\w|-)+"
 path_re = re.compile(rf"/?({directory_re}(/{directory_re})*/)?test_[A-Za-z0-9_]+\.py")
@@ -45,7 +45,7 @@ def ansi_fe_escapes():
 
 def preformatted_reports():
     return st.tuples(filepaths, names, variants | st.none(), messages).map(
-        lambda x: parse_logs.PreformattedReport(*x)
+        lambda x: format_issue_body.PreformattedReport(*x)
     )
 
 
@@ -59,7 +59,7 @@ def test_parse_nodeid(path, name, variant):
     note(f"nodeid: {nodeid}")
 
     expected = {"filepath": path, "name": name, "variant": variant}
-    actual = parse_logs.parse_nodeid(nodeid)
+    actual = format_issue_body.parse_nodeid(nodeid)
 
     assert actual == expected
 
@@ -68,26 +68,28 @@ def test_parse_nodeid(path, name, variant):
 def test_truncate(reports, max_chars):
     py_version = ".".join(str(part) for part in sys.version_info[:3])
 
-    formatted = parse_logs.truncate(reports, max_chars=max_chars, py_version=py_version)
+    formatted = format_issue_body.truncate(
+        reports, max_chars=max_chars, py_version=py_version
+    )
 
     assert formatted is None or len(formatted) <= max_chars
 
 
 @given(st.lists(ansi_fe_escapes()).map("".join))
 def test_strip_ansi_multiple(escapes):
-    assert parse_logs.strip_ansi(escapes) == ""
+    assert format_issue_body.strip_ansi(escapes) == ""
 
 
 @given(ansi_fe_escapes())
 def test_strip_ansi(escape):
     message = f"some {escape}text"
 
-    assert parse_logs.strip_ansi(message) == "some text"
+    assert format_issue_body.strip_ansi(message) == "some text"
 
 
 @given(ansi_fe_escapes())
 def test_preformatted_report_ansi(escape):
-    actual = parse_logs.PreformattedReport(
+    actual = format_issue_body.PreformattedReport(
         filepath="a", name="b", variant=None, message=f"{escape}text"
     )
     assert actual.message == "text"

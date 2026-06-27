@@ -42,23 +42,24 @@ runs:
         python -m pip install pytest more-itertools
     - name: produce the issue body
       shell: bash -l {0}
+      id: formatter
+      env:
+        LOG_PATH: ${{ inputs.log-path }}
+        WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        ISSUE_BODY: ${{ github.action_path }}/issue-body.md
       run: |
-        python $GITHUB_ACTION_PATH/parse_logs.py ${{ inputs.log-path }}
-    - name: construct the issue body
+        python $GITHUB_ACTION_PATH/format_issue_body.py "$LOG_PATH" "$WORKFLOW_URL" "$ISSUE_BODY"
+
+        echo "ISSUE_BODY=$ISSUE_BODY" >> $GITHUB_OUTPUT
+    - name: inspect the results
       shell: bash
       env:
-        WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        LOG_PATH: pytest-logs.txt
+        LOG_PATH: ${{ inputs.log-path }}
+        ISSUE_BODY: ${{ steps.formatter.outputs.ISSUE_BODY }}
       run: |
-        # format the issue body
-        (
-          echo "[Workflow Run URL]($WORKFLOW_URL)";
-          cat $LOG_PATH;
-        ) > $GITHUB_ACTION_PATH/issue_body.md
-
-        # log the contents
-        echo "::group::issue-body"
-        cat $GITHUB_ACTION_PATH/issue_body.md
+        # issue body
+        echo "::group::issue body"
+        cat "$ISSUE_BODY"
         echo "::endgroup::"
 
     - name: create the issue
@@ -68,7 +69,7 @@ runs:
         ISSUE_TITLE: ${{ inputs.issue-title }}
         ISSUE_LABEL: ${{ inputs.issue-label }}
         CREATOR: "app/github-actions"
-        REPO: ${{ github.repository }}
+        ISSUE_BODY: ${{ steps.formatter.outputs.ISSUE_BODY }}
         GH_TOKEN: ${{ github.token }}
       run: |
         issues=$(
@@ -83,11 +84,11 @@ runs:
         if [[ $(echo "$issues" | jq 'length') -eq 1 ]]; then
             gh issue edit \
               "$(echo "$issues" | jq '.[] | .number')" \
-              --body-file $GITHUB_ACTION_PATH/issue_body.md
+              --body-file $ISSUE_BODY
         else
             gh issue new \
               --assignee "$ASSIGNEES" \
               --label "$ISSUE_LABEL" \
               --title "$ISSUE_TITLE" \
-              --body-file $GITHUB_ACTION_PATH/issue_body.md
+              --body-file $ISSUE_BODY
         fi
