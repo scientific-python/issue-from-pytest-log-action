@@ -238,20 +238,7 @@ def format_collection_error(error, **formatter_kwargs):
         """).format(py_version=py_version, name=error.name, traceback=error.repr_)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("log-file", type=pathlib.Path)
-    parser.add_argument("workflow-url", type=str)
-    parser.add_argument(
-        "issue-body", type=pathlib.Path, default="issue-body.md", nargs="?"
-    )
-    args = vars(parser.parse_args())
-
-    py_version = ".".join(str(_) for _ in sys.version_info[:2])
-
-    print("Parsing logs ...")
-
-    lines = args["log-file"].read_text().splitlines()
+def format_message(lines):
     parsed_lines = [json.loads(line) for line in lines]
     reports = [
         parse_record(data)
@@ -267,6 +254,37 @@ if __name__ == "__main__":
         message = compressed_report(
             preformatted, max_chars=65535, py_version=py_version
         )
+
+    return message
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("log-file", type=pathlib.Path)
+    parser.add_argument("workflow-url", type=str)
+    parser.add_argument(
+        "issue-body", type=pathlib.Path, default="issue-body.md", nargs="?"
+    )
+    args = vars(parser.parse_args())
+
+    py_version = ".".join(str(_) for _ in sys.version_info[:2])
+
+    print("Parsing logs ...")
+
+    path = args["log-file"]
+
+    try:
+        lines = args["log-file"].read_text().splitlines()
+    except FileNotFoundError:
+        message = textwrap.dedent(
+            """\
+            Something went wrong.
+
+            However, the log file does not exist so there are no additional details.
+            """,
+        )
+    else:
+        message = format_message(lines)
 
     workflow_link = f"[Workflow Run URL]({args['workflow-url']})"
     body = "\n".join([workflow_link, message])
