@@ -109,4 +109,5 @@ Any assignees to set on the new issue:
     assignees: user1,user2
 ```
 
-Note that assignees must have the commit bit on the repository.
+> [!IMPORTANT]
+> Note that assignees must have the commit bit on the repository.
