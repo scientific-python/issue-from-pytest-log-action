@@ -295,7 +295,7 @@ if __name__ == "__main__":
         message = format_message(lines)
 
     workflow_link = f"[Workflow Run URL]({args['workflow-url']})"
-    body = "\n".join([workflow_link, message])
+    body = "\n".join([workflow_link, "", message])
 
     output_file = args["issue-body"]
     print(f"Writing output file to: {output_file.absolute()}")
