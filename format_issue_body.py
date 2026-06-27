@@ -149,7 +149,8 @@ def format_summary(report):
 
 
 def format_report(summaries, py_version):
-    template = textwrap.dedent("""\
+    template = textwrap.dedent(
+        """\
         <details><summary>Python {py_version} Test Summary</summary>
 
         ```
@@ -157,7 +158,8 @@ def format_report(summaries, py_version):
         ```
 
         </details>
-        """)
+        """,
+    )
     # can't use f-strings because that would format *before* the dedenting
     message = template.format(summaries="\n".join(summaries), py_version=py_version)
     return message
