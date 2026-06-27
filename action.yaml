@@ -66,6 +66,7 @@ runs:
         ISSUE_TITLE: ${{ inputs.issue-title }}
         ISSUE_LABEL: ${{ inputs.issue-label }}
         CREATOR: "app/github-actions"
+        ISSUE_BODY: ${{ github.action_path }}/issue-body.md
         GH_TOKEN: ${{ github.token }}
       run: |
         issues=$(
@@ -80,11 +81,11 @@ runs:
         if [[ $(echo "$issues" | jq 'length') -eq 1 ]]; then
             gh issue edit \
               "$(echo "$issues" | jq '.[] | .number')" \
-              --body-file $GITHUB_ACTION_PATH/issue_body.md
+              --body-file $ISSUE_BODY
         else
             gh issue new \
               --assignee "$ASSIGNEES" \
               --label "$ISSUE_LABEL" \
               --title "$ISSUE_TITLE" \
-              --body-file $GITHUB_ACTION_PATH/issue_body.md
+              --body-file $ISSUE_BODY
         fi
