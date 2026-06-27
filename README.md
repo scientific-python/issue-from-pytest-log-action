@@ -98,7 +98,7 @@ The label to set on the new issue.
 
 ### assignees
 
-optional
+optional. A comma-separated list of users.
 
 Any assignees to set on the new issue:
 
@@ -106,7 +106,7 @@ Any assignees to set on the new issue:
 - uses: scientific-python/issue-from-pytest-log-action@f94477e45ef40e4403d7585ba639a9a3bcc53d43 # v1.3.0
   with:
     log-path: pytest-log.jsonl
-    assignees: ["user1", "user2"]
+    assignees: user1,user2
 ```
 
 Note that assignees must have the commit bit on the repository.
