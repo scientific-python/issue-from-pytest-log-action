@@ -48,21 +48,20 @@ runs:
         ISSUE_BODY: ${{ github.action_path }}/issue-body.md
       run: |
         python $GITHUB_ACTION_PATH/parse_logs.py "$LOG_PATH" "$WORKFLOW_URL" "$ISSUE_BODY"
-    - name: construct the issue body
+    - name: inspect the issue body
       shell: bash
       env:
-        WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        LOG_PATH: pytest-logs.txt
+        LOG_PATH: ${{ inputs.log-path }}
+        ISSUE_BODY: ${{ github.action_path }}/issue-body.md
       run: |
-        # format the issue body
-        (
-          echo "[Workflow Run URL]($WORKFLOW_URL)";
-          cat $LOG_PATH;
-        ) > $GITHUB_ACTION_PATH/issue_body.md
+        # raw log file
+        echo "::group::reportlog file"
+        cat "$LOG_PATH"
+        echo "::endgroup::"
 
-        # log the contents
-        echo "::group::issue-body"
-        cat $GITHUB_ACTION_PATH/issue_body.md
+        # issue body
+        echo "::group::issue body"
+        cat "$ISSUE_BODY"
         echo "::endgroup::"
 
     - name: create the issue
