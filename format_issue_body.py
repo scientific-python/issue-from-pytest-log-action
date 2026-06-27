@@ -274,7 +274,7 @@ if __name__ == "__main__":
     path = args["log-file"]
 
     try:
-        lines = args["log-file"].read_text().splitlines()
+        lines = path.read_text().splitlines()
     except FileNotFoundError:
         message = textwrap.dedent(
             """\
