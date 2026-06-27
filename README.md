@@ -15,7 +15,8 @@ How this works:
 To use the `issue-from-pytest-log` action in workflows, simply add a new step:
 
 > [!IMPORTANT]
-> The action won't run properly unless the `issues: write` permission is requested as shown below.
+> The action won't run properly unless the `issues: write` permission is requested as
+> shown below.
 
 ```yaml
 permissions: {}
@@ -71,8 +72,9 @@ jobs:
 ```
 
 > [!TIP]
-> The above shows how to split the execution of tests from a task with elevated permissions (opening
-> / updating an issue). This is good practice to reduce the risks of supply-chain attacks.
+> The above shows how to split the execution of tests from a task with elevated
+> permissions (opening / updating an issue). This is good practice to reduce the risks of
+> supply-chain attacks.
 
 See [this repository](https://github.com/keewis/reportlog-test/issues) for example issues. For more realistic examples, see
 
@@ -88,8 +90,9 @@ required.
 Use `log-path` to specify where the output of `pytest-reportlog` is.
 
 > [!NOTE]
-> If the log file is missing (for example, because the workflow failed before `pytest` was run), the
-> action will still open / update, but the issue will contain no details about the exact failure.
+> If the log file is missing (for example, because the workflow failed before `pytest` was
+> run), the action will still open / update, but the issue will contain no details about
+> the exact failure.
 
 ### issue title
 
