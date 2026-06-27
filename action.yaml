@@ -71,7 +71,6 @@ runs:
         ISSUE_TITLE: ${{ inputs.issue-title }}
         ISSUE_LABEL: ${{ inputs.issue-label }}
         CREATOR: "app/github-actions"
-        REPO: ${{ github.repository }}
         GH_TOKEN: ${{ github.token }}
       run: |
         issues=$(
