@@ -14,19 +14,19 @@ How this works:
 
 To use the `issue-from-pytest-log` action in workflows, simply add a new step:
 
-> [!WARNING]
-> The action won't run properly unless the `issues: write` permission is requested as shown below.
+> [!IMPORTANT]
+> The action won't run properly unless the `issues: write` permission is requested as
+> shown below.
 
 ```yaml
+permissions: {}
+
 jobs:
   my-job:
     ...
     strategy:
       fail-fast: false
       ...
-
-    permissions:
-      issues: write
 
     ...
 
@@ -45,15 +45,36 @@ jobs:
     - run: |
         pytest --report-log pytest-log.jsonl
 
-    ...
+    - uses: actions/upload-artifact@...
+      with:
+        name: log file
+        path: pytest-log-jsonl
+
+  create-issue:
+    needs: my-job
+    runs-on: ubuntu-latest
+
+    permissions:
+      issues: write
+
+    steps:
+    - uses: actions/download-artifact@...
+      with:
+        name: log file
+        path: logs/
 
     - uses: scientific-python/issue-from-pytest-log-action@f94477e45ef40e4403d7585ba639a9a3bcc53d43  # v1.3.0
       if: |
         failure()
         && ...
       with:
-        log-path: pytest-log.jsonl
+        log-path: logs/pytest-log.jsonl
 ```
+
+> [!TIP]
+> In the example above, the action is in a separate job from the test run to avoid giving
+> untrusted code (typically nightly dependencies) access to a token that can modify the
+> repository. This is good practice to reduce the risk of supply-chain attacks.
 
 See [this repository](https://github.com/keewis/reportlog-test/issues) for example issues. For more realistic examples, see
 
@@ -67,6 +88,11 @@ See [this repository](https://github.com/keewis/reportlog-test/issues) for examp
 required.
 
 Use `log-path` to specify where the output of `pytest-reportlog` is.
+
+> [!NOTE]
+> If the log file is missing (for example, because the workflow failed before `pytest` was
+> run), the action will still open / update, but the issue won't contain details about the
+> exact failure.
 
 ### issue title
 
@@ -98,7 +124,7 @@ The label to set on the new issue.
 
 ### assignees
 
-optional
+optional. A comma-separated list of users.
 
 Any assignees to set on the new issue:
 
@@ -106,7 +132,8 @@ Any assignees to set on the new issue:
 - uses: scientific-python/issue-from-pytest-log-action@f94477e45ef40e4403d7585ba639a9a3bcc53d43 # v1.3.0
   with:
     log-path: pytest-log.jsonl
-    assignees: ["user1", "user2"]
+    assignees: user1,user2
 ```
 
-Note that assignees must have the commit bit on the repository.
+> [!IMPORTANT]
+> Note that assignees must have the commit bit on the repository.
