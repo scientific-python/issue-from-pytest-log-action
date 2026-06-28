@@ -72,9 +72,9 @@ jobs:
 ```
 
 > [!TIP]
-> The above shows how to split the execution of tests from a task with elevated
-> permissions (opening / updating an issue). This is good practice to reduce the risks of
-> supply-chain attacks.
+> In the example above, the action is in a separate job from the test run to avoid giving
+> untrusted code (typically nightly dependencies) access to a token that can modify the
+> repository. This is good practice to reduce the risk of supply-chain attacks.
 
 See [this repository](https://github.com/keewis/reportlog-test/issues) for example issues. For more realistic examples, see
 
