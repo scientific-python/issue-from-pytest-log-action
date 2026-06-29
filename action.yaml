@@ -31,26 +31,24 @@ branding:
 runs:
   using: composite
   steps:
-    - name: print environment information
-      shell: bash -l {0}
-      run: |
-        python --version
-        python -m pip list
-    - name: install dependencies
-      shell: bash -l {0}
-      run: |
-        python -m pip install pytest more-itertools
+    - name: setup uv
+      uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # 8.2.0
+      with:
+        python-version: "3.13"
+        working-directory: ${{ github.action_path }}
+        enable-cache: "false"
+
     - name: produce the issue body
-      shell: bash -l {0}
+      shell: bash
       id: formatter
       env:
+        UV_PROJECT: ${{ github.action_path }}
         LOG_PATH: ${{ inputs.log-path }}
         WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         ISSUE_BODY: ${{ github.action_path }}/issue-body.md
       run: |
-        python $GITHUB_ACTION_PATH/format_issue_body.py "$LOG_PATH" "$WORKFLOW_URL" "$ISSUE_BODY"
+        uv run --frozen $GITHUB_ACTION_PATH/format_issue_body.py "$LOG_PATH" "$WORKFLOW_URL" "$ISSUE_BODY"
 
-        echo "ISSUE_BODY=$ISSUE_BODY" >> $GITHUB_OUTPUT
     - name: inspect the results
       shell: bash
       env:
