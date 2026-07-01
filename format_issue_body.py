@@ -4,7 +4,7 @@
 #     "pytest",
 #     "more-itertools",
 # ]
-# requires-python = ">=3.12"
+# requires-python = ">=3.13"
 #
 # [tool.uv]
 # exclude-newer = "1 week"
