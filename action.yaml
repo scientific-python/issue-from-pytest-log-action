@@ -49,6 +49,8 @@ runs:
       run: |
         uv run --frozen $GITHUB_ACTION_PATH/format_issue_body.py "$LOG_PATH" "$WORKFLOW_URL" "$ISSUE_BODY"
 
+        echo "ISSUE_BODY=$ISSUE_BODY" >> $GITHUB_OUTPUT
+
     - name: inspect the results
       shell: bash
       env:
