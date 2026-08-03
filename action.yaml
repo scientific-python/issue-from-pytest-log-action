@@ -75,6 +75,7 @@ runs:
       run: |
         issues=$(
           gh issue list \
+            --repo "$REPOSITORY" \
             -S "in:title $ISSUE_TITLE" \
             --state open \
             --author $CREATOR \
@@ -84,10 +85,12 @@ runs:
 
         if [[ $(echo "$issues" | jq 'length') -eq 1 ]]; then
             gh issue edit \
+              --repo "$REPOSITORY" \
               "$(echo "$issues" | jq '.[] | .number')" \
               --body-file $ISSUE_BODY
         else
             gh issue new \
+              --repo "$REPOSITORY" \
               --assignee "$ASSIGNEES" \
               --label "$ISSUE_LABEL" \
               --title "$ISSUE_TITLE" \
