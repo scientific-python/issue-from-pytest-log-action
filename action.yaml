@@ -71,11 +71,10 @@ runs:
         CREATOR: "app/github-actions"
         ISSUE_BODY: ${{ steps.formatter.outputs.ISSUE_BODY }}
         GH_TOKEN: ${{ github.token }}
-        REPOSITORY: ${{ github.repository }}
       run: |
         issues=$(
           gh issue list \
-            --repo "$REPOSITORY" \
+            --repo "$GITHUB_REPOSITORY" \
             -S "in:title $ISSUE_TITLE" \
             --state open \
             --author $CREATOR \
@@ -85,12 +84,12 @@ runs:
 
         if [[ $(echo "$issues" | jq 'length') -eq 1 ]]; then
             gh issue edit \
-              --repo "$REPOSITORY" \
+              --repo "$GITHUB_REPOSITORY" \
               "$(echo "$issues" | jq '.[] | .number')" \
               --body-file $ISSUE_BODY
         else
             gh issue new \
-              --repo "$REPOSITORY" \
+              --repo "$GITHUB_REPOSITORY" \
               --assignee "$ASSIGNEES" \
               --label "$ISSUE_LABEL" \
               --title "$ISSUE_TITLE" \
