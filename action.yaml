@@ -71,6 +71,7 @@ runs:
         CREATOR: "app/github-actions"
         ISSUE_BODY: ${{ steps.formatter.outputs.ISSUE_BODY }}
         GH_TOKEN: ${{ github.token }}
+        REPOSITORY: ${{ github.repository }}
       run: |
         issues=$(
           gh issue list \
